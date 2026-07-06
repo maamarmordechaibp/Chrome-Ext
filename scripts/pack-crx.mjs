@@ -11,7 +11,6 @@
 // across releases — it determines the extension's permanent ID. In CI it is
 // provided via the CRX_PRIVATE_KEY secret.
 import crypto from 'node:crypto';
-import { createReadStream } from 'node:fs';
 import { mkdir, readFile, writeFile, access } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
@@ -83,8 +82,10 @@ async function main() {
   const crxPath = join(outDir, 'extension.crx');
   const zipPath = join(outDir, 'dist.zip');
 
-  // crx3 packs the whole directory that contains the streamed manifest.json.
-  await crx3(createReadStream(manifestPath), { keyPath, crxPath, zipPath });
+  // Passing an array whose single element is the manifest.json path makes crx3
+  // pack the ENTIRE directory that contains it (all files in dist/), not just
+  // the manifest.
+  await crx3([manifestPath], { keyPath, crxPath, zipPath });
 
   const pem = await readFile(keyPath, 'utf8');
   const id = extensionIdFromKey(pem);
