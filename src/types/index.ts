@@ -96,3 +96,25 @@ export type MessageType =
   | 'FETCH_IMAGES_BATCH' | 'OPEN_ITEM';
 export interface MessageRequest<T = unknown> { type: MessageType; payload?: T; }
 export interface MessageResponse<T = unknown> { success: boolean; data?: T; error?: string; }
+
+/** A representative's account profile stored in Firestore under `users/{uid}`. */
+export interface UserProfile {
+  uid: string;
+  email: string;
+  displayName: string;
+  /** The team this rep belongs to; scopes all catalog access. */
+  teamId: string;
+  role: 'owner' | 'member';
+  createdAt: number;
+}
+
+/** A team/company. All catalogs are scoped to a team so any rep on the team can
+ *  see any catalog. Stored in Firestore under `teams/{teamId}`. */
+export interface Team {
+  id: string;
+  name: string;
+  /** Short human-friendly code new reps enter to join this team. */
+  joinCode: string;
+  ownerUid: string;
+  createdAt: number;
+}

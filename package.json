@@ -1,6 +1,6 @@
 {
   "name": "marketplace-catalog-generator",
-  "version": "1.0.9",
+  "version": "1.0.10",
   "private": true,
   "scripts": {
     "dev": "vite build --watch",
@@ -16,6 +16,7 @@
     "@tensorflow-models/body-pix": "^2.2.1",
     "@tensorflow-models/coco-ssd": "^2.2.3",
     "@tensorflow/tfjs": "^4.22.0",
+    "firebase": "^12.15.0",
     "jspdf": "^2.5.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"

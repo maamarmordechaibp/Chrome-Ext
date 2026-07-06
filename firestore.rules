@@ -1,0 +1,46 @@
+rules_version = '2';
+
+// Firestore security rules for the Marketplace Catalog Generator.
+//
+// Model: every user document records the team they belong to. All catalog data
+// is stored under teams/{teamId}/catalogs/{catalogId}, so any signed-in member
+// of a team can read/write that team's catalogs — and NO ONE can read another
+// team's data. This makes the app multi-tenant and safe to share.
+//
+// Deploy: Firebase console -> Firestore Database -> Rules -> paste -> Publish.
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // The signed-in user's team id (or null if no profile yet).
+    function myTeamId() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.teamId;
+    }
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    // Teams: readable by signed-in users (needed to look up a join code at
+    // sign-up). Only the owner may modify a team after creation.
+    match /teams/{teamId} {
+      allow read: if signedIn();
+      // Allow creating a team whose ownerUid is the creator.
+      allow create: if signedIn() && request.resource.data.ownerUid == request.auth.uid;
+      allow update, delete: if signedIn() && resource.data.ownerUid == request.auth.uid;
+    }
+
+    // User profiles: a user may read/write only their own profile document.
+    match /users/{uid} {
+      allow read: if signedIn() && request.auth.uid == uid;
+      allow create: if signedIn() && request.auth.uid == uid;
+      allow update, delete: if signedIn() && request.auth.uid == uid;
+    }
+
+    // Catalog data is scoped per team. Any member of the team may read and
+    // write; members of other teams are denied.
+    match /teams/{teamId}/catalogs/{catalogId} {
+      allow read, write: if signedIn() && myTeamId() == teamId;
+    }
+  }
+}

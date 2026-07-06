@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Marketplace Catalog Generator",
-  "version": "1.0.9",
+  "version": "1.0.10",
   "description": "Generate professional printable PDF catalogs.",
   "action": {
     "default_popup": "popup.html",
@@ -51,7 +51,10 @@
     "https://*.media-amazon.com/*",
     "https://i.ebayimg.com/*",
     "https://i5.walmartimages.com/*",
-    "https://*.alicdn.com/*"
+    "https://*.alicdn.com/*",
+    "https://*.googleapis.com/*",
+    "https://*.firebaseio.com/*",
+    "https://codelab-77107.firebaseapp.com/*"
   ],
   "web_accessible_resources": [
     {

@@ -1,0 +1,27 @@
+rules_version = '2';
+
+// Cloud Storage security rules for the Marketplace Catalog Generator.
+//
+// Product images and generated PDFs are stored under teams/{teamId}/... so only
+// signed-in members of that team can read or write them. Mirrors the Firestore
+// team-scoping model.
+//
+// Deploy: Firebase console -> Storage -> Rules -> paste -> Publish.
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    // The signed-in user's team id, read from their Firestore profile.
+    function myTeamId() {
+      return firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.teamId;
+    }
+
+    match /teams/{teamId}/{allPaths=**} {
+      allow read, write: if signedIn() && myTeamId() == teamId;
+    }
+  }
+}

@@ -4,6 +4,9 @@ import { Dashboard } from './components/Dashboard';
 import { OpenItem }  from './components/OpenItem';
 import { History }   from './components/History';
 import { Settings }  from './components/Settings';
+import { Login }     from './components/Login';
+import { useAuth }   from '../cloud/useAuth';
+import { authService } from '../cloud/authService';
 import './index.css';
 
 type Tab = 'dashboard' | 'open-item' | 'history' | 'settings';
@@ -15,16 +18,34 @@ const TABS = [
 ];
 
 export const Popup: React.FC = () => {
+  const { loading, user, profile } = useAuth();
   const [activeTab, setActiveTab] = useState<Tab>('dashboard');
   const version = chrome.runtime?.getManifest?.().version ?? '';
+
+  if (loading) {
+    return (
+      <div className="w-[400px] min-h-[520px] flex items-center justify-center bg-white text-gray-400 text-sm">
+        Loading…
+      </div>
+    );
+  }
+
+  if (!user) return <Login />;
+
   return (
     <div className="w-[400px] min-h-[520px] flex flex-col bg-white select-none">
       <header className="bg-gradient-to-r from-blue-700 to-blue-500 px-4 py-2.5 flex items-center justify-between">
         <div>
           <h1 className="text-white font-bold text-sm tracking-wide">🛒 Catalog Generator</h1>
-          <p className="text-blue-200 text-[10px]">Amazon · eBay · Walmart · AliExpress</p>
+          <p className="text-blue-200 text-[10px]">{profile?.displayName ?? user.email}</p>
         </div>
-        {version && <span className="text-blue-100 text-[10px] font-mono bg-blue-800/40 px-1.5 py-0.5 rounded">v{version}</span>}
+        <div className="flex items-center gap-2">
+          {version && <span className="text-blue-100 text-[10px] font-mono bg-blue-800/40 px-1.5 py-0.5 rounded">v{version}</span>}
+          <button onClick={() => authService.signOut()} title="Sign out"
+            className="text-blue-100 hover:text-white text-[10px] bg-blue-800/40 hover:bg-blue-800/70 px-1.5 py-0.5 rounded transition-colors">
+            Sign out
+          </button>
+        </div>
       </header>
       <nav className="flex bg-gray-50 border-b border-gray-200">
         {TABS.map((tab) => (
