@@ -61,8 +61,9 @@ export async function captureDetail(
   const blob = await detailPdfGenerator.generate(detail, settings, meta);
 
   const thumb = await makeThumbnail(detail.imagesBase64[0] ?? '');
+  const startNo = settings.startItemNumber ?? 1001;
   const maps: ItemMapping[] = [{
-    itemNumber: 1, url: detail.url, page: 1, marketplace: detail.marketplace,
+    itemNumber: startNo, url: detail.url, page: 1, marketplace: detail.marketplace,
     timestamp: detail.timestamp, title: detail.title, imageUrl: detail.images[0],
   }];
   const rec: CatalogRecord = {

@@ -10,9 +10,17 @@ const fmt = (ts: number) => new Date(ts).toLocaleString('en-US', { month:'short'
 
 export const History: React.FC = () => {
   const [cats, setCats] = useState<CatalogRecord[]>([]);
+  const [localPdfs, setLocalPdfs] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   useEffect(() => { load(); }, []);
-  const load = async () => { setLoading(true); setCats(await storageManager.getCatalogs()); setLoading(false); };
+  const load = async () => {
+    setLoading(true);
+    const list = await storageManager.getCatalogs();
+    setCats(list);
+    const flags = await Promise.all(list.map((c) => storageManager.hasLocalPdf(c.id)));
+    setLocalPdfs(new Set(list.filter((_, i) => flags[i]).map((c) => c.id)));
+    setLoading(false);
+  };
   const del = async (id: string) => { if (!confirm('Remove this catalog?')) return; await storageManager.deleteCatalog(id); await load(); };
   const fav = async (id: string) => { await storageManager.toggleFavorite(id); await load(); };
 
@@ -75,12 +83,16 @@ export const History: React.FC = () => {
                   <button onClick={() => del(cat.id)} title="Delete" className="text-[11px] text-gray-400 hover:text-red-500">🗑</button>
                 </div>
               </div>
-              {cat.hasPdf && (
+              {cat.hasPdf && (localPdfs.has(cat.id) ? (
                 <div className="flex gap-1.5 mt-2 pt-2 border-t border-gray-100">
                   <button onClick={() => openPdf(cat.id)} className="flex-1 text-[10px] py-1 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-lg text-gray-600">👁 Preview</button>
                   <button onClick={() => downloadPdf(cat)} className="flex-1 text-[10px] py-1 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg text-blue-600">⬇️ Download</button>
                 </div>
-              )}
+              ) : (
+                <div className="mt-2 pt-2 border-t border-gray-100">
+                  <p className="text-[9px] text-gray-400">📄 PDF was generated on another computer. Use <span className="font-semibold">Open Item</span> to view its products.</p>
+                </div>
+              ))}
             </div>
           );
         })}

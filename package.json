@@ -1,6 +1,6 @@
 {
   "name": "marketplace-catalog-generator",
-  "version": "1.0.12",
+  "version": "1.0.15",
   "private": true,
   "scripts": {
     "dev": "vite build --watch",

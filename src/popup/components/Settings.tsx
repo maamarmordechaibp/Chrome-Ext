@@ -108,6 +108,13 @@ export const Settings: React.FC = () => {
             <option value={4}>4 rows (8–12 items/page)</option>
           </select>
         </div>
+        <div>
+          <label className="block text-[10px] font-medium text-gray-700 mb-1">Starting item number</label>
+          <input type="number" min={1} max={999999} value={s.startItemNumber}
+            onChange={(e) => up('startItemNumber', Math.max(1, Math.min(999999, parseInt(e.target.value) || 1)))}
+            className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-xs" />
+          <p className="text-[9px] text-gray-400 mt-1">Item numbers on the pictures start here (e.g. 1001, 1002…). Reps enter this number to open an item.</p>
+        </div>
       </section>
 
       <section className="space-y-2">

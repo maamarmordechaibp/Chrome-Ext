@@ -87,6 +87,8 @@ export interface Settings {
   companyName: string;
   companyLogo?: string; showLogo: boolean;
   defaultCustomerName: string; defaultRepresentative: string;
+  /** First item number printed on the pictures (e.g. 1001). Lookup uses this. */
+  startItemNumber: number;
   crawlMode: CrawlMode; maxPages: number;
 }
 

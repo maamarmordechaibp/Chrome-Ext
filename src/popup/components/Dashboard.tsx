@@ -80,7 +80,7 @@ export const Dashboard: React.FC = () => {
 
   const generatePDF = useCallback(async () => {
     if (!settings || !pageInfo) return;
-    const selected = products.filter((p) => included.has(p.id)).map((p, i) => ({ ...p, itemNumber: i + 1 }));
+    const selected = products.filter((p) => included.has(p.id)).map((p, i) => ({ ...p, itemNumber: (settings.startItemNumber ?? 1001) + i }));
     if (!selected.length) { setError('Select at least one product.'); return; }
     setPhase('images'); setProgress(5); setError(''); setPdfBlob(null); setStatus('Fetching images…');
     try {

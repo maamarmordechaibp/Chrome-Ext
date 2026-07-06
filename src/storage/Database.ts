@@ -74,6 +74,11 @@ export const catalogDB = {
   getPdf(id: string): Promise<Blob | undefined> {
     return tx<Blob | undefined>(STORE_PDFS, 'readonly', (s) => s.get(id));
   },
+  /** True if a PDF blob for this catalog exists locally (no blob is loaded). */
+  async hasPdf(id: string): Promise<boolean> {
+    const key = await tx<IDBValidKey | undefined>(STORE_PDFS, 'readonly', (s) => s.getKey(id));
+    return key !== undefined;
+  },
   async putPdf(id: string, blob: Blob): Promise<void> {
     await tx(STORE_PDFS, 'readwrite', (s) => s.put(blob, id));
   },

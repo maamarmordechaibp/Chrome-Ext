@@ -17,6 +17,7 @@ const DEFAULT_SETTINGS: Settings = {
   companyName: 'CodeLab',
   companyLogo: undefined, showLogo: true,
   defaultCustomerName: '', defaultRepresentative: '',
+  startItemNumber: 1001,
   crawlMode: 'current', maxPages: 5,
 };
 
@@ -95,6 +96,9 @@ class StorageManager {
 
   savePdf(catalogId: string, blob: Blob): Promise<void> { return catalogDB.putPdf(catalogId, blob); }
   getPdf(catalogId: string): Promise<Blob | undefined> { return catalogDB.getPdf(catalogId); }
+  /** Whether this computer holds the generated PDF for a catalog (PDFs are not
+   *  shared across computers on the free plan). */
+  hasLocalPdf(catalogId: string): Promise<boolean> { return catalogDB.hasPdf(catalogId); }
 
   /** Looks up an item by its catalog ID and item number (unambiguous).
    *  Checks the shared cloud catalog first so any rep can resolve an item
