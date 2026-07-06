@@ -1,0 +1,40 @@
+{
+  "name": "marketplace-catalog-generator",
+  "version": "1.0.8",
+  "private": true,
+  "scripts": {
+    "dev": "vite build --watch",
+    "bump": "node scripts/bump-version.mjs",
+    "prebuild": "node scripts/bump-version.mjs",
+    "build": "vite build",
+    "package": "node scripts/pack-crx.mjs",
+    "release": "vite build && node scripts/pack-crx.mjs",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@tensorflow-models/body-pix": "^2.2.1",
+    "@tensorflow-models/coco-ssd": "^2.2.3",
+    "@tensorflow/tfjs": "^4.22.0",
+    "jspdf": "^2.5.1",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  },
+  "devDependencies": {
+    "@types/chrome": "^0.0.254",
+    "@types/jsdom": "^21.1.6",
+    "@types/react": "^18.2.48",
+    "@types/react-dom": "^18.2.18",
+    "@typescript-eslint/eslint-plugin": "^6.21.0",
+    "@typescript-eslint/parser": "^6.21.0",
+    "@vitejs/plugin-react": "^4.2.1",
+    "autoprefixer": "^10.4.17",
+    "crx3": "^1.1.3",
+    "jsdom": "^24.0.0",
+    "postcss": "^8.4.33",
+    "tailwindcss": "^3.4.1",
+    "typescript": "^5.3.3",
+    "vite": "^5.0.12",
+    "vitest": "^1.6.0"
+  }
+}

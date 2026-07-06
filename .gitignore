@@ -1,0 +1,11 @@
+node_modules/
+dist/
+release/
+
+# Extension signing key — keep private, never commit.
+key.pem
+*.pem
+
+# Misc
+.DS_Store
+*.log
