@@ -1,6 +1,56 @@
 import React, { useState, useEffect } from 'react';
-import { Settings as ST, CrawlMode } from '../../types';
+import { Settings as ST, CrawlMode, Team } from '../../types';
 import { storageManager } from '../../storage/StorageManager';
+import { useAuth } from '../../cloud/useAuth';
+import { authService } from '../../cloud/authService';
+
+/** Shows the signed-in rep's team and its join code so the owner can invite
+ *  other representatives (they enter this code on the "Join Team" screen). */
+const TeamPanel: React.FC = () => {
+  const { profile } = useAuth();
+  const [team, setTeam] = useState<Team | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    if (profile?.teamId) authService.getTeam(profile.teamId).then(setTeam);
+  }, [profile?.teamId]);
+
+  if (!profile) return null;
+
+  const copyCode = async () => {
+    if (!team) return;
+    try { await navigator.clipboard.writeText(team.joinCode); setCopied(true); setTimeout(() => setCopied(false), 2000); } catch { /* ignore */ }
+  };
+
+  return (
+    <section className="space-y-2">
+      <h3 className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Team</h3>
+      <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 space-y-2">
+        <div className="flex items-center justify-between">
+          <span className="text-[10px] text-gray-500">Team name</span>
+          <span className="text-xs font-semibold text-gray-800">{team?.name ?? '…'}</span>
+        </div>
+        <div className="flex items-center justify-between">
+          <span className="text-[10px] text-gray-500">Signed in as</span>
+          <span className="text-xs text-gray-700">{profile.displayName} · {profile.role}</span>
+        </div>
+        <div className="pt-1 border-t border-gray-200">
+          <span className="block text-[10px] text-gray-500 mb-1">Team code — share this so reps can join</span>
+          <div className="flex items-center gap-2">
+            <code className="flex-1 text-center text-lg font-mono font-bold tracking-[0.3em] bg-white border border-gray-300 rounded py-1.5 text-blue-700">
+              {team?.joinCode ?? '••••••'}
+            </code>
+            <button onClick={copyCode} disabled={!team}
+              className="px-3 py-1.5 text-[11px] font-medium bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded transition-colors">
+              {copied ? 'Copied!' : 'Copy'}
+            </button>
+          </div>
+          <p className="text-[10px] text-gray-400 mt-1">New reps pick “Join Team” at sign-in and enter this code.</p>
+        </div>
+      </div>
+    </section>
+  );
+};
 
 type BK = { [K in keyof ST]-?: ST[K] extends boolean ? K : never; }[keyof ST];
 const OPTS: [BK, string][] = [
@@ -39,6 +89,7 @@ export const Settings: React.FC = () => {
 
   return (
     <div className="p-4 space-y-5">
+      <TeamPanel />
       <section className="space-y-2">
         <h3 className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">PDF Layout</h3>
         <div>

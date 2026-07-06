@@ -32,6 +32,21 @@ export const Popup: React.FC = () => {
 
   if (!user) return <Login />;
 
+  // Signed in but no team profile (e.g. signed in with a provider that didn't
+  // go through team sign-up). Can't scope catalogs without a team.
+  if (!profile) {
+    return (
+      <div className="w-[400px] min-h-[520px] flex flex-col items-center justify-center gap-3 bg-white p-6 text-center">
+        <p className="text-sm font-medium text-gray-700">Your account isn’t linked to a team yet.</p>
+        <p className="text-[11px] text-gray-500">Sign out and use “New Team” or “Join Team” with email &amp; password to set one up.</p>
+        <button onClick={() => authService.signOut()}
+          className="mt-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded transition-colors">
+          Sign out
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="w-[400px] min-h-[520px] flex flex-col bg-white select-none">
       <header className="bg-gradient-to-r from-blue-700 to-blue-500 px-4 py-2.5 flex items-center justify-between">

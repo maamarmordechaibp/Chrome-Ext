@@ -40,6 +40,11 @@ export const authService = {
     return snap.exists() ? (snap.data() as UserProfile) : null;
   },
 
+  async getTeam(teamId: string): Promise<Team | null> {
+    const snap = await getDoc(doc(db, 'teams', teamId));
+    return snap.exists() ? (snap.data() as Team) : null;
+  },
+
   async signIn(email: string, password: string): Promise<void> {
     await signInWithEmailAndPassword(auth, email.trim(), password);
   },
