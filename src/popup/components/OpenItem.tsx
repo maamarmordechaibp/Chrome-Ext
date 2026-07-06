@@ -18,11 +18,17 @@ export const OpenItem: React.FC = () => {
     if (!id) { setError('Please enter a Catalog ID.'); return; }
     if (!n || n < 1) { setError('Please enter a valid item number.'); return; }
     setLoading(true); setError(''); setStatus('');
-    chrome.runtime.sendMessage({ type: 'OPEN_ITEM', payload: { catalogId: id, itemNumber: n } }, (resp) => {
-      setLoading(false);
-      if (chrome.runtime.lastError || !resp?.success) { setError(resp?.error ?? `Item #${n} not found in ${id}.`); }
-      else { setStatus(`Opening Item #${n} — ${resp.data.title?.substring(0, 45) ?? ''}`); setTimeout(() => window.close(), 1200); }
-    });
+    // Resolve the item here in the popup (where the rep is authenticated) so the
+    // shared team catalog in the cloud can be searched, then open the page.
+    storageManager.findItem(id, n)
+      .then((mapping) => {
+        if (!mapping) { setError(`Item #${n} was not found in catalog ${id}.`); return; }
+        chrome.tabs.create({ url: mapping.url, active: true });
+        setStatus(`Opening Item #${n} — ${mapping.title?.substring(0, 45) ?? ''}`);
+        setTimeout(() => window.close(), 1200);
+      })
+      .catch((e) => setError(String(e?.message ?? e)))
+      .finally(() => setLoading(false));
   };
 
   return (

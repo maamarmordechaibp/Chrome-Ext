@@ -1,6 +1,13 @@
 import { CatalogRecord, ItemMapping, Settings } from '../types';
 import { catalogDB } from './Database';
 
+/** Lazily loads the cloud layer only when needed. Keeps Firebase out of the
+ *  background service worker bundle (which never calls cloud methods). */
+async function cloud() {
+  const { cloudCatalog } = await import('../cloud/cloudCatalog');
+  return cloudCatalog;
+}
+
 const DEFAULT_SETTINGS: Settings = {
   productsPerRow: 2, rowsPerPage: 3,
   showRatings: true, showReviews: true, showDiscounts: true,
@@ -39,22 +46,62 @@ class StorageManager {
     return `CAT-${ymd}-${String(next).padStart(6, '0')}`;
   }
 
-  getCatalogs(): Promise<CatalogRecord[]> { return catalogDB.getCatalogs(); }
-  getCatalog(id: string): Promise<CatalogRecord | undefined> { return catalogDB.getCatalog(id); }
-  saveCatalog(catalog: CatalogRecord): Promise<void> { return catalogDB.saveCatalog(catalog); }
-  deleteCatalog(id: string): Promise<void> { return catalogDB.deleteCatalog(id); }
+  /** Returns team catalogs (from the cloud) merged with any local-only ones.
+   *  Falls back to local when signed out or offline. */
+  async getCatalogs(): Promise<CatalogRecord[]> {
+    const local = await catalogDB.getCatalogs();
+    try {
+      const cloudList = await (await cloud()).list();
+      if (cloudList.length === 0) return local;
+      // Cloud is the shared source of truth; keep local-only extras too.
+      const byId = new Map<string, CatalogRecord>();
+      for (const c of local) byId.set(c.id, c);
+      for (const c of cloudList) byId.set(c.id, c); // cloud wins on conflicts
+      return [...byId.values()].sort((a, b) => {
+        if (!!b.favorite !== !!a.favorite) return b.favorite ? 1 : -1;
+        return b.generationDate - a.generationDate;
+      });
+    } catch {
+      return local; // offline / not signed in
+    }
+  }
+
+  /** Looks up a single catalog, preferring the shared cloud copy so any rep can
+   *  open a catalog created on another computer. */
+  async getCatalog(id: string): Promise<CatalogRecord | undefined> {
+    try {
+      const remote = await (await cloud()).get(id.trim());
+      if (remote) return remote;
+    } catch { /* fall through to local */ }
+    return catalogDB.getCatalog(id);
+  }
+
+  /** Saves locally (fast cache) and to the team cloud (shared). Cloud failures
+   *  are non-fatal so the app keeps working offline. */
+  async saveCatalog(catalog: CatalogRecord): Promise<void> {
+    await catalogDB.saveCatalog(catalog);
+    try { await (await cloud()).save(catalog); } catch (e) { console.warn('Cloud save failed:', e); }
+  }
+
+  async deleteCatalog(id: string): Promise<void> {
+    await catalogDB.deleteCatalog(id);
+    try { await (await cloud()).remove(id); } catch (e) { console.warn('Cloud delete failed:', e); }
+  }
 
   async toggleFavorite(id: string): Promise<void> {
-    const cat = await catalogDB.getCatalog(id);
-    if (cat) { cat.favorite = !cat.favorite; await catalogDB.saveCatalog(cat); }
+    const cat = (await this.getCatalog(id));
+    if (cat) { cat.favorite = !cat.favorite; await this.saveCatalog(cat); }
   }
 
   savePdf(catalogId: string, blob: Blob): Promise<void> { return catalogDB.putPdf(catalogId, blob); }
   getPdf(catalogId: string): Promise<Blob | undefined> { return catalogDB.getPdf(catalogId); }
 
-  /** Looks up an item by its catalog ID and item number (unambiguous). */
+  /** Looks up an item by its catalog ID and item number (unambiguous).
+   *  Checks the shared cloud catalog first so any rep can resolve an item
+   *  created on another computer, falling back to the local cache. */
   async findItem(catalogId: string, itemNumber: number): Promise<ItemMapping | null> {
-    const cat = await catalogDB.getCatalog(catalogId.trim());
+    const id = catalogId.trim();
+    const cat = (await this.getCatalog(id)) ?? (await catalogDB.getCatalog(id));
     if (!cat) return null;
     return cat.itemMappings.find((m) => m.itemNumber === itemNumber) ?? null;
   }

@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import type { User } from 'firebase/auth';
 import { authService } from './authService';
+import { session } from './session';
 import type { UserProfile } from '../types';
 
 export interface AuthState {
@@ -16,10 +17,12 @@ export function useAuth(): AuthState {
   useEffect(() => {
     return authService.onChange(async (user) => {
       if (!user) {
+        await session.setTeamId(null);
         setState({ loading: false, user: null, profile: null });
         return;
       }
       const profile = await authService.getProfile(user.uid);
+      await session.setTeamId(profile?.teamId ?? null);
       setState({ loading: false, user, profile });
     });
   }, []);
