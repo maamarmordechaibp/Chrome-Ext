@@ -1,5 +1,5 @@
 // Packs the built `dist/` folder into a self-hosted, auto-updating Chrome
-// extension bundle for GitHub hosting (Path B).
+// extension bundle hosted on Cloudflare Pages (https://catalog-ext.pages.dev).
 //
 // Outputs (into `release/`):
 //   - extension.crx        the signed, installable extension
@@ -21,15 +21,12 @@ const distDir = join(root, 'dist');
 const outDir = join(root, 'release');
 const keyPath = join(root, 'key.pem');
 
-// Where the release assets will be reachable. GitHub's "latest release" URLs are
-// stable across versions, so update.xml can always point at them.
-// Override with CRX_BASE_URL if you host elsewhere (e.g. GitHub Pages).
-const repo = process.env.GITHUB_REPOSITORY; // "owner/repo" in Actions
+// Where the release assets will be reachable. The Cloudflare Pages production
+// URL is stable across versions, so update.xml can always point at it.
+// Override with CRX_BASE_URL if you host elsewhere.
 const baseUrl = (
   process.env.CRX_BASE_URL ||
-  (repo
-    ? `https://github.com/${repo}/releases/latest/download`
-    : 'https://github.com/OWNER/REPO/releases/latest/download')
+  'https://catalog-ext.pages.dev'
 ).replace(/\/+$/, '');
 
 const exists = (p) => access(p).then(() => true).catch(() => false);

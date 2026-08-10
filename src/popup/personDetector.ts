@@ -21,6 +21,12 @@ async function getModel(): Promise<BodyPix> {
   return modelPromise;
 }
 
+/** Kicks off model loading in the background (e.g. while the rep reviews the
+ *  scan) so the first redaction isn't stuck waiting for the download. */
+export function preloadPersonModel(): void {
+  void getModel().catch(() => { modelPromise = null; });
+}
+
 /**
  * Returns a per-pixel person mask (1 = person, 0 = background) for the given canvas,
  * so only the actual body pixels can be painted over — not a full rectangle.
@@ -32,7 +38,7 @@ export async function segmentPeople(
 ): Promise<{ data: Uint8Array; width: number; height: number } | null> {
   const model = await getModel();
   const seg = await model.segmentPerson(source, {
-    internalResolution: 'medium',
+    internalResolution: 'low',
     segmentationThreshold: threshold,
     maxDetections: 10,
   });

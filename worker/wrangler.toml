@@ -1,0 +1,39 @@
+# Cloudflare Worker: receives a generated catalog PDF + fax number from the
+# extension, verifies the caller's Firebase sign-in, and sends the fax via
+# SignalWire. Runs on the Workers FREE plan (no card). Secrets are set with
+# `wrangler secret put`, never committed here.
+name = "catalog-fax-worker"
+main = "src/index.ts"
+compatibility_date = "2025-01-01"
+
+# Short-lived storage for the PDF while SignalWire fetches it (MediaUrl).
+# Create with: wrangler kv namespace create MEDIA  -> paste the id below.
+kv_namespaces = [
+  { binding = "MEDIA", id = "906eca28631e48c7988a3fa1c80c1e9b" }
+]
+
+# Non-secret config. Fill these in for your project.
+[vars]
+FIREBASE_PROJECT_ID   = "codelab-77107"
+SIGNALWIRE_SPACE      = "accuinfo.signalwire.com"
+SIGNALWIRE_PROJECT_ID = "0279ca68-442b-47a8-b0ba-1602dfa78fda"
+SIGNALWIRE_FAX_FROM   = "+18452413473"
+WORKER_PUBLIC_URL     = "https://catalog-fax-worker.3762437.workers.dev"
+# Comma-free single origin. For the admin page + extension you can widen this
+# in code; keep it to the extension origin for the /fax + /usage endpoints.
+ALLOWED_ORIGIN        = "chrome-extension://ffjbifdhdfnmehefglhbkneoecjnhkha"
+# The admin web page origin(s), allowed to call /admin/*. Comma-separate to
+# allow more than one (e.g. the custom domain and the old Pages URL).
+ADMIN_ORIGIN          = "https://ext.codelabsus.com,https://catalog-admin-7wd.pages.dev"
+# Service account email (from the downloaded service-account JSON, "client_email").
+SA_CLIENT_EMAIL       = "firebase-adminsdk-fbsvc@codelab-77107.iam.gserviceaccount.com"
+# The first admin: whoever signs in with this email is treated as admin even
+# before an 'admin' role claim is set. Use it to bootstrap, then rely on claims.
+BOOTSTRAP_ADMIN_EMAIL = "3762437@gmail.com"
+# Resend "from" address (must be on a domain you've verified in Resend).
+EMAIL_FROM            = "Codelabs <Support@codelabsus.com>"
+
+# Secrets (do NOT put here): set once with
+#   wrangler secret put SIGNALWIRE_API_TOKEN
+#   wrangler secret put SA_PRIVATE_KEY      # the JSON "private_key" PEM value
+#   wrangler secret put RESEND_API_KEY

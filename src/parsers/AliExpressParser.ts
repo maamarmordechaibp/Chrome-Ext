@@ -66,6 +66,31 @@ export class AliExpressParser extends BaseParser {
     return { marketplace: this.marketplace, searchKeywords, currentPage, isSupported: true, url: doc.location?.href ?? '' };
   }
 
+  /** Picks a real product image URL from a card, tolerating AliExpress's lazy
+   *  loading — the real URL often sits in data-src/srcset, not src. */
+  private pickImageUrl(container: Element): string {
+    const imgs = Array.from(container.querySelectorAll('img')) as HTMLImageElement[];
+    for (const img of imgs) {
+      const srcset = img.getAttribute('srcset') || '';
+      if (srcset) {
+        const best = srcset.split(',').map((s) => s.trim().split(/\s+/)[0])
+          .filter((u) => u && !u.startsWith('data:')).pop();
+        if (best) return this.normalizeImageUrl(best);
+      }
+      const cand = [
+        img.getAttribute('src'), img.getAttribute('data-src'),
+        img.getAttribute('data-lazy-src'), img.getAttribute('data-image'),
+      ].map((s) => (s ?? '').trim()).find((s) => s && !s.startsWith('data:'));
+      if (cand) return this.normalizeImageUrl(cand);
+    }
+    return '';
+  }
+
+  /** Upgrades protocol-relative CDN URLs (//ae01.alicdn.com/…) to https. */
+  private normalizeImageUrl(u: string): string {
+    return u.startsWith('//') ? `https:${u}` : u;
+  }
+
   extractProducts(doc: Document, searchKeywords: string, page: number, start: number): Product[] {
     const products: Product[] = [];
     const containers = this.allOf(doc, ['.search-item-card-wrapper-gallery', '[class*="SearchResults--"] > div', '.list--gallery--C2f2tvm > div']);
@@ -75,9 +100,7 @@ export class AliExpressParser extends BaseParser {
         const titleEl = container.querySelector('[class*="title--"], h1, h2, h3, [class*="Title"]');
         const title = this.getText(titleEl);
         if (!title || title.length < 3) continue;
-        const imgs = Array.from(container.querySelectorAll('img')) as HTMLImageElement[];
-        const imgEl = imgs.find((img) => img.src && !img.src.startsWith('data:'));
-        const imageUrl = imgEl?.src || '';
+        const imageUrl = this.pickImageUrl(container);
         const priceEl = container.querySelector('[class*="price--"], [class*="Price"]');
         const price = priceEl ? this.getText(priceEl).split('–')[0].trim() : '';
         const ratingEl = container.querySelector('[class*="rate--"], [class*="Rating--stars"]');
@@ -89,7 +112,8 @@ export class AliExpressParser extends BaseParser {
         const descEl = container.querySelector('[class*="subtitle--"], [class*="desc--"]');
         const descRaw = descEl ? this.getText(descEl) : '';
         const description = descRaw.length >= 3 ? descRaw.substring(0, 90) : undefined;
-        const linkEl = (container.tagName === 'A' ? container : container.querySelector('a[href]')) as HTMLAnchorElement | null;
+        const linkEl = (container.tagName === 'A' ? container
+          : container.querySelector('a[href*="/item/"]') || container.querySelector('a[href]')) as HTMLAnchorElement | null;
         const url = this.absoluteUrl(this.getAttr(linkEl, 'href'), 'https://www.aliexpress.com');
         products.push({ id: this.generateId(), itemNumber: itemNumber++, marketplace: this.marketplace,
           title: title.substring(0, 200), imageUrl, price, rating, reviews, description, shipping, page, url, searchKeywords, timestamp: Date.now() });

@@ -59,16 +59,82 @@ export class WalmartParser extends BaseParser {
     return { marketplace: this.marketplace, searchKeywords, currentPage, isSupported: true, url: doc.location?.href ?? '' };
   }
 
+  /** Reads the tile price, preferring explicit price nodes but falling back to a
+   *  currency match anywhere in the tile text (Walmart splits price into many
+   *  spans and relabels the automation ids often).
+   *
+   *  Walmart renders the price twice: an accessible node with the real value
+   *  ("current price $37.61") and a visual split ("$37" + "61") that reads back
+   *  as "$3761". We therefore prefer a currency amount that INCLUDES cents and
+   *  only fall back to a whole-dollar match when no cents form exists, so the
+   *  broken "$3761" form is never chosen over the true "$37.61". */
+  private extractPrice(container: Element): string {
+    const priceEl = this.firstOf(container, [
+      '[itemprop="price"]',
+      '[data-automation-id="product-price"] span',
+      '[data-automation-id="product-price"]',
+      '.price-main .price-characteristic',
+      '[data-testid="list-view-price"]',
+      '[class*="price"]',
+    ]);
+    const priceText = priceEl ? this.getText(priceEl).replace(/\s+/g, ' ') : '';
+    const containerText = this.getText(container).replace(/\s+/g, ' ');
+    const WITH_CENTS = /[$£€]\s?[\d,]+\.\d{2}/;
+    const WHOLE = /[$£€]\s?[\d,]+/;
+    const cents = priceText.match(WITH_CENTS) || containerText.match(WITH_CENTS);
+    if (cents) return cents[0].replace(/\s/g, '');
+    const whole = priceText.match(WHOLE) || containerText.match(WHOLE);
+    return whole ? whole[0].replace(/\s/g, '') : '';
+  }
+
+  /** The stable numeric product id inside a "/ip/<slug>/<id>" URL, used to tell
+   *  distinct products apart when climbing the DOM to find a tile. */
+  private productKey(href: string): string {
+    const path = (href || '').split('?')[0];
+    const m = path.match(/\/ip\/(?:.*\/)?(\d{4,})/);
+    return m ? m[1] : path;
+  }
+
+  /** Climbs up from a product link to the widest ancestor that still wraps only
+   *  that single product, so the whole tile (image, title, price) is captured.
+   *  A tile often has two links to the same product (image + title), so we count
+   *  distinct product ids — not raw links — to avoid stopping too early. */
+  private tileFor(link: Element): Element {
+    const key = this.productKey(this.getAttr(link, 'href'));
+    let best: Element = link;
+    let el: Element | null = link;
+    while (el && el.parentElement && el.parentElement.tagName !== 'BODY') {
+      const parent = el.parentElement;
+      const keys = new Set(
+        Array.from(parent.querySelectorAll('a[href*="/ip/"]'))
+          .map((a) => this.productKey(this.getAttr(a, 'href'))),
+      );
+      keys.delete(key);
+      if (keys.size > 0) break; // parent reaches into a neighbouring product
+      best = parent;
+      el = parent;
+    }
+    return best;
+  }
+
   extractProducts(doc: Document, searchKeywords: string, page: number, start: number): Product[] {
     const products: Product[] = [];
     // Walmart reworks its tile markup often, but every product tile still holds a
     // "/ip/" link. Discover tiles from those links (most redesign-proof), and fall
     // back to explicit container selectors when link discovery comes up empty.
+    const linkSelector = 'a[href*="/ip/"], a[link-identifier][href], a[data-automation-id="product-title-link"][href]';
     const tiles: Element[] = [];
+    const tileHref = new Map<Element, string>();
     const seenTiles = new Set<Element>();
-    for (const link of Array.from(doc.querySelectorAll('a[href*="/ip/"]'))) {
-      const tile = link.closest('[data-item-id], [data-testid="list-view"] > div, [role="group"], li') || link.parentElement;
-      if (tile && !seenTiles.has(tile)) { seenTiles.add(tile); tiles.push(tile); }
+    for (const link of Array.from(doc.querySelectorAll(linkSelector))) {
+      const href = this.getAttr(link, 'href');
+      if (!href || !/\/ip\//.test(href)) continue;
+      const tile = this.tileFor(link);
+      if (tile && !seenTiles.has(tile)) {
+        seenTiles.add(tile); tiles.push(tile);
+        // Remember the link we found the tile by, so its URL is never lost.
+        tileHref.set(tile, href);
+      }
     }
     const containers = tiles.length
       ? tiles
@@ -77,16 +143,16 @@ export class WalmartParser extends BaseParser {
     const seenUrls = new Set<string>();
     for (const container of containers) {
       try {
-        const linkEl = container.querySelector('a[href*="/ip/"], a[link-identifier], a[data-automation-id="product-title-link"]') as HTMLAnchorElement | null;
-        const url = this.absoluteUrl(this.getAttr(linkEl, 'href'), 'https://www.walmart.com');
+        const linkEl = container.querySelector(linkSelector) as HTMLAnchorElement | null;
+        const rawHref = this.getAttr(linkEl, 'href') || tileHref.get(container) || '';
+        const url = this.absoluteUrl(rawHref, 'https://www.walmart.com');
         if (url && seenUrls.has(url)) continue;
-        const imgEl = container.querySelector('img[data-testid="productTileImage"], img[data-automation-id="image"], img[loading]') as HTMLImageElement | null;
+        const imgEl = container.querySelector('img[data-testid="productTileImage"], img[data-automation-id="image"], img[loading], img[src*="walmartimages"], img') as HTMLImageElement | null;
         const titleEl = this.firstOf(container, ['[data-automation-id="product-title"]', 'span.w_iUH7', '.product-title-link span']);
         const title = this.getText(titleEl) || this.getAttr(linkEl, 'aria-label') || this.getAttr(imgEl, 'alt');
         if (!title || title.length < 3) continue;
-        const imageUrl = imgEl?.src || imgEl?.getAttribute('data-src') || '';
-        const priceEl = this.firstOf(container, ['[itemprop="price"]', '[data-automation-id="product-price"] span', '.price-main .price-characteristic', '[data-automation-id="product-price"]']);
-        const price = priceEl ? this.getText(priceEl).replace(/\s+/g, ' ').match(/[$£€][\d,.]+/)?.[0] || this.getText(priceEl) : '';
+        const imageUrl = imgEl?.src || imgEl?.getAttribute('data-src') || imgEl?.getAttribute('srcset')?.split(/[,\s]/)[0] || '';
+        const price = this.extractPrice(container);
         const ratingEl = container.querySelector('[aria-label*="stars"], [data-automation-id="rating"], [class*="rating"]');
         const rating = this.getAttr(ratingEl, 'aria-label').match(/[\d.]+/)?.[0];
         const reviewEl = container.querySelector('[data-automation-id="review-count"], [class*="review"]');

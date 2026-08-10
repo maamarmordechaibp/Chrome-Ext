@@ -143,6 +143,7 @@ export const Settings: React.FC = () => {
 
       <section className="space-y-2">
         <h3 className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Branding</h3>
+        <p className="text-[9px] text-gray-400 leading-tight">Your company name and logo are set by your administrator and applied automatically each time you sign in. You can override them below for this device.</p>
         <div>
           <label className="block text-[10px] font-medium text-gray-700 mb-1">Company name (PDF header)</label>
           <input type="text" value={s.companyName} onChange={(e) => up('companyName', e.target.value)} placeholder="Your Company" className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-xs" />

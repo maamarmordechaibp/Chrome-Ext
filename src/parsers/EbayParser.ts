@@ -112,7 +112,7 @@ export class EbayParser extends BaseParser {
     const reviewEl = container.querySelector('.s-item__reviews-count span');
     const reviews = reviewEl ? this.getText(reviewEl) : undefined;
     const linkEl = container.querySelector('.s-item__link') as HTMLAnchorElement | null;
-    const url = this.getAttr(linkEl, 'href');
+    const url = this.absoluteUrl(this.getAttr(linkEl, 'href'), 'https://www.ebay.com');
     return { id: this.generateId(), itemNumber, marketplace: this.marketplace,
       title: title.substring(0, 200), imageUrl, price, rating, reviews, seller, shipping, availability, description,
       page, url, searchKeywords, timestamp: Date.now() };
@@ -124,7 +124,7 @@ export class EbayParser extends BaseParser {
       || this.getText(container.querySelector('a[href*="/itm/"]'));
     if (!title || /^shop on ebay$/i.test(title)) return null;
     const linkEl = container.querySelector('a[href*="/itm/"]') as HTMLAnchorElement | null;
-    const url = this.getAttr(linkEl, 'href');
+    const url = this.absoluteUrl(this.getAttr(linkEl, 'href'), 'https://www.ebay.com');
     const imgEl = container.querySelector('img') as HTMLImageElement | null;
     const imageUrl = (imgEl?.getAttribute('data-src') || imgEl?.src || '').replace(/s-l\d+\./, 's-l500.');
     let price = this.getText(this.firstOf(container, ['.s-card__price', '[class*="s-card__price"]']));

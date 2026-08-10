@@ -25,9 +25,11 @@ function loadImage(src: string): Promise<HTMLImageElement> {
 
 /**
  * Modesty filter: uses an in-browser AI model (BodyPix) to locate the person, then paints
- * over only the exposed-skin pixels inside that region — the face, arms and legs — while
- * leaving the clothing/product the model is wearing or holding fully visible. This keeps
- * garments intact instead of greying out the whole silhouette.
+ * over only the person's exposed SKIN inside that region — face, hands, arms and legs —
+ * while leaving the clothing/product they wear or hold fully visible. Requiring both
+ * "is a person" AND "is skin" means a flat-lay dress or a pair of shorts is never greyed
+ * out, even if the model mistakes the product for a person. The skin area is closed with a
+ * small dilation so it paints solidly instead of speckling.
  * If the model can't be reached, it falls back to a conservative skin-tone heuristic.
  */
 export async function redactPeople(dataUrl: string): Promise<string> {
@@ -41,27 +43,33 @@ export async function redactPeople(dataUrl: string): Promise<string> {
     if (!ctx) return dataUrl;
     ctx.drawImage(img, 0, 0);
 
-    // Primary: AI person segmentation — paint only the actual body pixels.
+    // Primary: AI person segmentation — paint the person's skin only.
     try {
       const { segmentPeople } = await import('./personDetector');
       const timeout = new Promise<null>((res) => setTimeout(() => res(null), 15000));
       const mask = await Promise.race([segmentPeople(canvas, 0.6), timeout]);
       if (mask) {
+        const md = mask.data; const mw = mask.width; const mh = mask.height;
         const frame = ctx.getImageData(0, 0, w, h);
         const px = frame.data;
-        const md = mask.data; const mw = mask.width; const mh = mask.height;
         const sx = mw / w; const sy = mh / h;
+        // Full-res skin mask, gated by the person region: 1 only where BodyPix
+        // sees a person AND the pixel is human skin (not fabric/khaki/beige).
+        const skin = new Uint8Array(w * h);
         for (let y = 0; y < h; y++) {
           const my = Math.min(mh - 1, (y * sy) | 0) * mw;
           for (let x = 0; x < w; x++) {
-            if (md[my + Math.min(mw - 1, (x * sx) | 0)] === 1) {
-              const i = (y * w + x) * 4;
-              // Only paint the actual human skin — not the dress or items being worn/held.
-              if (isSkin(px[i], px[i + 1], px[i + 2])) {
-                px[i] = 220; px[i + 1] = 220; px[i + 2] = 220; px[i + 3] = 255;
-              }
-            }
+            if (md[my + Math.min(mw - 1, (x * sx) | 0)] !== 1) continue;
+            const i = (y * w + x) * 4;
+            if (isSkin(px[i], px[i + 1], px[i + 2])) skin[y * w + x] = 1;
           }
+        }
+        // Close small gaps so skin paints as a solid block, not speckles.
+        const solid = dilateMask(skin, w, h, Math.max(1, Math.round(Math.min(w, h) / 120)));
+        for (let p = 0; p < solid.length; p++) {
+          if (solid[p] !== 1) continue;
+          const i = p * 4;
+          px[i] = 220; px[i + 1] = 220; px[i + 2] = 220; px[i + 3] = 255;
         }
         ctx.putImageData(frame, 0, 0);
         return canvas.toDataURL('image/jpeg', 0.88);
@@ -72,6 +80,25 @@ export async function redactPeople(dataUrl: string): Promise<string> {
       return redactBySkin(ctx, canvas, w, h, dataUrl);
     }
   } catch { return dataUrl; }
+}
+
+/** Expands a binary skin mask by `radius` cells so its edges join up into a solid
+ *  patch (closing the speckles the strict skin test leaves) without bleeding across
+ *  the whole silhouette. */
+function dilateMask(src: Uint8Array, w: number, h: number, radius: number): Uint8Array {
+  if (radius <= 0) return src;
+  const out = new Uint8Array(src.length);
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      if (src[y * w + x] !== 1) continue;
+      const y0 = Math.max(0, y - radius), y1 = Math.min(h - 1, y + radius);
+      const x0 = Math.max(0, x - radius), x1 = Math.min(w - 1, x + radius);
+      for (let ny = y0; ny <= y1; ny++) {
+        for (let nx = x0; nx <= x1; nx++) out[ny * w + nx] = 1;
+      }
+    }
+  }
+  return out;
 }
 
 /** Conservative fallback: paints skin-tone-heavy regions when the AI model is unavailable. */

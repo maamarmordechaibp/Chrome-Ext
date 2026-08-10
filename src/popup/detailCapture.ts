@@ -2,6 +2,7 @@ import { CatalogMeta, CatalogRecord, DetailResult, ItemMapping, ProductDetail, S
 import { storageManager } from '../storage/StorageManager';
 import { detailPdfGenerator } from '../pdf/DetailPDFGenerator';
 import { makeThumbnail, redactPeople } from './imageUtil';
+import { reserveItems } from '../cloud/faxService';
 
 export interface DetailCaptureContext {
   customerName?: string; representative?: string;
@@ -61,7 +62,7 @@ export async function captureDetail(
   const blob = await detailPdfGenerator.generate(detail, settings, meta);
 
   const thumb = await makeThumbnail(detail.imagesBase64[0] ?? '');
-  const startNo = settings.startItemNumber ?? 1001;
+  const startNo = await reserveItems(1);
   const maps: ItemMapping[] = [{
     itemNumber: startNo, url: detail.url, page: 1, marketplace: detail.marketplace,
     timestamp: detail.timestamp, title: detail.title, imageUrl: detail.images[0],

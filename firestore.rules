@@ -21,20 +21,29 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    // Teams: readable by signed-in users (needed to look up a join code at
-    // sign-up). Only the owner may modify a team after creation.
+    // Teams: readable by signed-in users (needed to resolve the caller's team).
+    // Creation and changes happen ONLY through the admin backend, whose
+    // service-account writes bypass these rules. Clients may not write.
     match /teams/{teamId} {
       allow read: if signedIn();
-      // Allow creating a team whose ownerUid is the creator.
-      allow create: if signedIn() && request.resource.data.ownerUid == request.auth.uid;
-      allow update, delete: if signedIn() && resource.data.ownerUid == request.auth.uid;
+      allow write: if false;
     }
 
-    // User profiles: a user may read/write only their own profile document.
+    // Per-company delivery credentials (Resend + SignalWire API keys, from
+    // address). NEVER readable or writable by any client — only the admin
+    // backend's service account touches these (its writes bypass rules). Kept
+    // in a separate collection so members reading teams/{teamId} for branding
+    // can never see the secrets.
+    match /team_secrets/{teamId} {
+      allow read, write: if false;
+    }
+
+    // User profiles: a user may READ only their own profile. Profiles are
+    // provisioned and modified only by the admin backend, so clients may not
+    // create, update, or delete them.
     match /users/{uid} {
       allow read: if signedIn() && request.auth.uid == uid;
-      allow create: if signedIn() && request.auth.uid == uid;
-      allow update, delete: if signedIn() && request.auth.uid == uid;
+      allow write: if false;
     }
 
     // Catalog data is scoped per team. Any member of the team may read and

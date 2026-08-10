@@ -1,10 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { CatalogRecord } from '../../types';
 import { storageManager } from '../../storage/StorageManager';
+import { SendButtons } from './SendButtons';
 
 const MC: Record<string, string> = {
   Amazon:'bg-yellow-100 text-yellow-800', Walmart:'bg-blue-100 text-blue-800',
-  eBay:'bg-red-100 text-red-800', AliExpress:'bg-orange-100 text-orange-800'
+  eBay:'bg-red-100 text-red-800', AliExpress:'bg-orange-100 text-orange-800',
+  Target:'bg-red-100 text-red-800', "Macy's":'bg-rose-100 text-rose-800',
+  Costco:'bg-blue-100 text-blue-800', 'Home Depot':'bg-orange-100 text-orange-800',
+  'Best Buy':'bg-blue-100 text-blue-800', "Lowe's":'bg-blue-100 text-blue-900',
+  Wayfair:'bg-purple-100 text-purple-800', Etsy:'bg-orange-100 text-orange-900'
 };
 const fmt = (ts: number) => new Date(ts).toLocaleString('en-US', { month:'short', day:'numeric', year:'numeric', hour:'2-digit', minute:'2-digit' });
 
@@ -93,6 +98,11 @@ export const History: React.FC = () => {
                   <p className="text-[9px] text-gray-400">📄 PDF was generated on another computer. Use <span className="font-semibold">Open Item</span> to view its products.</p>
                 </div>
               ))}
+              {cat.hasPdf && localPdfs.has(cat.id) && (
+                <div className="mt-1.5">
+                  <SendButtons getBlob={() => storageManager.getPdf(cat.id)} filenameBase={cat.id} />
+                </div>
+              )}
             </div>
           );
         })}

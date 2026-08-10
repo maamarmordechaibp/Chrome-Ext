@@ -6,10 +6,21 @@ import { crawl }          from '../crawler';
 import { captureDetail }  from '../detailCapture';
 import { makeThumbnail, redactPeople }  from '../imageUtil';
 import { ProductList }    from './ProductList';
+import { SendButtons }    from './SendButtons';
+import { logUsage, reserveItems } from '../../cloud/faxService';
 
 async function getTabId(): Promise<number> {
-  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-  if (!tab?.id) throw new Error('No active tab.');
+  // The toolbar popup shares the browser window, so its active tab is the page.
+  let [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  // In the detached "Open in window" mode, the current window is the popup
+  // window itself — fall back to the active tab of a real browser window.
+  if (!tab || !tab.id || (tab.url ?? '').startsWith('chrome-extension://')) {
+    const wins = await chrome.windows.getAll({ populate: true });
+    const normals = wins.filter((w) => w.type === 'normal');
+    const win = normals.find((w) => w.focused) ?? normals[0];
+    tab = win?.tabs?.find((t) => t.active) ?? win?.tabs?.[0] ?? tab;
+  }
+  if (!tab?.id) throw new Error('Open a marketplace page in your browser, then click Refresh.');
   return tab.id;
 }
 
@@ -68,6 +79,10 @@ export const Dashboard: React.FC = () => {
       setPageInfo(result.pageInfo);
       setProgress(100); setPhase('done');
       setStatus(`Found ${result.products.length} products across ${result.pagesScanned} page(s)`);
+      // Warm up the person-detection model now so it's ready by PDF time.
+      if (settings?.hidePeople) {
+        import('../personDetector').then((m) => m.preloadPersonModel()).catch(() => {});
+      }
     } catch (e) { setError(e instanceof Error ? e.message : String(e)); setPhase('idle'); setStatus(''); }
   }, [crawlMode, maxPages]);
 
@@ -80,10 +95,13 @@ export const Dashboard: React.FC = () => {
 
   const generatePDF = useCallback(async () => {
     if (!settings || !pageInfo) return;
-    const selected = products.filter((p) => included.has(p.id)).map((p, i) => ({ ...p, itemNumber: (settings.startItemNumber ?? 1001) + i }));
-    if (!selected.length) { setError('Select at least one product.'); return; }
-    setPhase('images'); setProgress(5); setError(''); setPdfBlob(null); setStatus('Fetching images…');
+    const chosen = products.filter((p) => included.has(p.id));
+    if (!chosen.length) { setError('Select at least one product.'); return; }
+    setPhase('images'); setProgress(5); setError(''); setPdfBlob(null); setStatus('Reserving item numbers…');
     try {
+      const start = await reserveItems(chosen.length);
+      const selected = chosen.map((p, i) => ({ ...p, itemNumber: start + i }));
+      setStatus('Fetching images…');
       const images = await new Promise<string[]>((resolve, reject) => {
         chrome.runtime.sendMessage({ type: 'FETCH_IMAGES_BATCH', payload: { urls: selected.map((p) => p.imageUrl) } }, (resp) => {
           if (chrome.runtime.lastError || !resp?.success) reject(new Error(resp?.error ?? 'Image fetch failed'));
@@ -93,8 +111,14 @@ export const Dashboard: React.FC = () => {
       const enriched = selected.map((p, i) => ({ ...p, imageBase64: images[i] ?? undefined }));
       if (settings.hidePeople) {
         setStatus('Reviewing images…');
-        for (const p of enriched) {
-          if (p.imageBase64) p.imageBase64 = await redactPeople(p.imageBase64);
+        // Redact several images at once (was one-by-one) to cut total time.
+        const CONCURRENCY = 3;
+        for (let i = 0; i < enriched.length; i += CONCURRENCY) {
+          await Promise.all(
+            enriched.slice(i, i + CONCURRENCY).map(async (p) => {
+              if (p.imageBase64) p.imageBase64 = await redactPeople(p.imageBase64);
+            }),
+          );
         }
       }
       setProgress(50); setPhase('pdf'); setStatus('Generating PDF…');
@@ -116,6 +140,7 @@ export const Dashboard: React.FC = () => {
       };
       await storageManager.saveCatalog(rec);
       await storageManager.savePdf(id, blob);
+      void logUsage('catalogs');
       setPdfBlob(blob); setCatalogId(id); setProgress(100); setPhase('done');
       setStatus(`Catalog ${id} ready — ${enriched.length} products`);
     } catch (e) { setError(e instanceof Error ? e.message : String(e)); setPhase('idle'); setStatus(''); }
@@ -168,7 +193,7 @@ export const Dashboard: React.FC = () => {
           </div>
         )}
         {!pageInfo && <p className="text-[10px] text-gray-400">Connecting…</p>}
-        {!sup && pageInfo && <p className="text-[10px] text-gray-500">Navigate to a search results or product page on Amazon, eBay, Walmart, or AliExpress.</p>}
+        {!sup && pageInfo && <p className="text-[10px] text-gray-500">Navigate to a search results or product page on a supported store (Amazon, Walmart, eBay, AliExpress, Target, Macy's, Costco, Home Depot, Best Buy, Lowe's, Wayfair, Etsy).</p>}
       </div>
 
       {sup && (
@@ -192,7 +217,10 @@ export const Dashboard: React.FC = () => {
                 {busy ? '⏳ Capturing…' : '📸 Capture this product'}
               </button>
               {pdfBlob && (
-                <button onClick={download} className="w-full py-2.5 bg-violet-500 hover:bg-violet-600 text-white text-xs font-semibold rounded-lg">⬇️ Download product sheet</button>
+                <>
+                  <button onClick={download} className="w-full py-2.5 bg-violet-500 hover:bg-violet-600 text-white text-xs font-semibold rounded-lg">⬇️ Download product sheet</button>
+                  <SendButtons getBlob={async () => pdfBlob} filenameBase={catalogId || 'product-sheet'} />
+                </>
               )}
             </div>
           ) : (
@@ -222,7 +250,10 @@ export const Dashboard: React.FC = () => {
                   </button>
                 )}
                 {pdfBlob && (
-                  <button onClick={download} className="w-full py-2.5 bg-violet-500 hover:bg-violet-600 text-white text-xs font-semibold rounded-lg">⬇️ Download PDF</button>
+                  <>
+                    <button onClick={download} className="w-full py-2.5 bg-violet-500 hover:bg-violet-600 text-white text-xs font-semibold rounded-lg">⬇️ Download PDF</button>
+                    <SendButtons getBlob={async () => pdfBlob} filenameBase={catalogId || 'catalog'} />
+                  </>
                 )}
               </div>
             </>

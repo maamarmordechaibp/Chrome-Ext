@@ -1,4 +1,8 @@
-export type Marketplace = 'Amazon' | 'Walmart' | 'eBay' | 'AliExpress' | 'Unknown';
+export type Marketplace =
+  | 'Amazon' | 'Walmart' | 'eBay' | 'AliExpress'
+  | 'Target' | "Macy's" | 'Costco' | 'Home Depot'
+  | 'Best Buy' | "Lowe's" | 'Wayfair' | 'Etsy'
+  | 'Unknown';
 
 /** How many result pages to scan when generating a catalog. */
 export type CrawlMode = 'current' | 'first' | 'all';
@@ -119,4 +123,7 @@ export interface Team {
   joinCode: string;
   ownerUid: string;
   createdAt: number;
+  /** Company logo (base64 data URL) set by an admin. Applied to reps' PDF
+   *  branding automatically when they sign in. */
+  logo?: string;
 }

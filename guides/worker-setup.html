@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Catalog Generator — Worker Setup Guide</title>
+<style>
+  :root { --blue:#1d4ed8; --blue2:#3b82f6; --ink:#1f2933; --mut:#6b7280; --line:#e5e7eb; --ok:#059669; }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family: system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; color:var(--ink); background:#f6f8fb; line-height:1.5; }
+  .wrap { max-width: 860px; margin:0 auto; padding:32px 20px 80px; }
+  h1 { font-size:26px; margin:0 0 4px; }
+  h2 { font-size:19px; margin:34px 0 10px; border-bottom:2px solid var(--line); padding-bottom:6px; }
+  .lead { color:var(--mut); margin:0 0 8px; }
+  a { color:var(--blue); word-break:break-all; }
+  code, .mono { font-family: ui-monospace,Consolas,monospace; background:#eef2f7; padding:2px 6px; border-radius:5px; font-size:.92em; }
+  ol.steps { list-style:none; counter-reset:s; padding:0; margin:0; }
+  ol.steps > li { counter-increment:s; position:relative; padding:14px 16px 14px 54px; background:#fff; border:1px solid var(--line); border-radius:12px; margin:10px 0; }
+  ol.steps > li::before { content:counter(s); position:absolute; left:14px; top:14px; width:28px; height:28px; background:var(--blue); color:#fff; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:14px; }
+  .link-box { display:inline-block; background:#ecf3ff; border:1px solid #cfe0ff; color:var(--blue); padding:6px 10px; border-radius:8px; font-family:ui-monospace,Consolas,monospace; font-size:.9em; margin-top:4px; }
+  .note { background:#fff8e6; border:1px solid #f5e2a8; border-radius:10px; padding:10px 14px; font-size:.92em; margin:10px 0; }
+  .warn { background:#fdecec; border:1px solid #f5b5b5; }
+  .tip  { background:#e9f8f0; border:1px solid #b7e6cd; }
+
+  /* --- UI mockups --- */
+  .shot { border:1px solid var(--line); border-radius:12px; overflow:hidden; width:320px; background:#fff; box-shadow:0 4px 14px rgba(0,0,0,.06); margin:8px 0; }
+  .shot .hd { background:linear-gradient(90deg,#1d4ed8,#3b82f6); color:#fff; padding:10px 12px; display:flex; justify-content:space-between; align-items:center; }
+  .shot .hd b { font-size:13px; } .shot .hd small { opacity:.8; font-size:10px; }
+  .pill { background:rgba(255,255,255,.25); border-radius:6px; padding:2px 6px; font-size:10px; }
+  .tabs { display:flex; border-bottom:1px solid var(--line); background:#f9fafb; }
+  .tabs div { flex:1; text-align:center; padding:8px 0; font-size:11px; color:var(--mut); }
+  .tabs .on { color:var(--blue); border-bottom:2px solid var(--blue); background:#fff; font-weight:600; }
+  .body { padding:14px; }
+  .fld { border:1px solid #cbd5e1; border-radius:8px; padding:8px 10px; font-size:12px; color:#94a3b8; margin:6px 0; }
+  .btn { background:var(--blue2); color:#fff; text-align:center; border-radius:8px; padding:9px; font-size:12px; font-weight:600; margin-top:8px; }
+  .btn.green{ background:#10b981; } .btn.violet{ background:#7c3aed; }
+  .row2 { display:flex; gap:8px; }
+  .chip { background:#eef2ff; color:#4f46e5; border-radius:6px; padding:5px 8px; font-size:10px; text-align:center; flex:1; }
+  .print { margin-top:18px; }
+  @media print { body{background:#fff;} .shot{box-shadow:none;} .noprint{display:none;} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Catalog Generator — Setup Guide</h1>
+  <p class="lead">Follow these steps once to install the extension, then sign in and start building catalogs.</p>
+  <button class="print noprint" onclick="window.print()">🖨️ Print / Save as PDF</button>
+
+  <div class="note warn"><b>Before you start:</b> your administrator must first create your account. You'll receive an
+    <b>email address</b> and a <b>temporary password</b> — you'll need them in Step 6.</div>
+
+  <h2>Part A — Install the extension (once)</h2>
+  <ol class="steps">
+    <li><b>Download the extension.</b> Open this link and save the file:
+      <br><span class="link-box">https://catalog-ext.pages.dev/dist.zip</span></li>
+    <li><b>Unzip it.</b> Right-click the downloaded <code>dist.zip</code> → <b>Extract All…</b> → pick an easy, permanent
+      folder such as <code>Documents\CatalogExtension</code>. <span class="note tip" style="display:block">Keep this folder — don't delete it. The extension runs from here.</span></li>
+    <li><b>Open Chrome's extensions page.</b> Type this in the address bar and press Enter:
+      <br><span class="link-box">chrome://extensions</span></li>
+    <li><b>Turn on “Developer mode”</b> — the switch in the <b>top-right corner</b> of that page.</li>
+    <li><b>Click “Load unpacked”</b> (top-left), then select the folder you unzipped in Step 2.
+      The <b>Catalog Generator</b> card appears. Click the puzzle-piece 🧩 in Chrome's toolbar and <b>pin</b> it.</li>
+  </ol>
+
+  <div class="shot">
+    <div class="hd"><span>🛒 <b>Catalog Generator</b></span><span><span class="pill">v1.0.28</span> <span class="pill">⧉</span> <span class="pill">Sign out</span></span></div>
+    <div class="tabs"><div class="on">Generate</div><div>Open&nbsp;Item</div><div>History</div><div>Settings</div></div>
+    <div class="body" style="text-align:center;color:#94a3b8;font-size:12px;padding:22px 14px;">↑ This is the extension after it opens.</div>
+  </div>
+
+  <h2>Part B — Sign in</h2>
+  <ol class="steps">
+    <li value="6"><b>Click the extension icon</b> in the toolbar to open it.</li>
+    <li><b>Enter the email &amp; password</b> your administrator gave you, then click <b>Sign In</b>.
+      <div class="shot" style="margin-top:10px">
+        <div class="hd"><span>🛒 <b>Catalog Generator</b></span></div>
+        <div class="body">
+          <div class="fld">you@company.com</div>
+          <div class="fld">••••••••</div>
+          <div class="btn">Sign In</div>
+          <p style="font-size:10px;color:#94a3b8;text-align:center;margin:8px 0 0">No account? Ask your administrator.</p>
+        </div>
+      </div>
+    </li>
+    <li><b>Tip:</b> click the <b>⧉ button</b> (top-right) to pop the tool into its own window that stays open while you browse.</li>
+  </ol>
+
+  <h2>Part C — Build a catalog</h2>
+  <ol class="steps">
+    <li value="9"><b>Go to a marketplace search page</b> in Chrome — Amazon, Walmart, eBay, or AliExpress — and search for your product.</li>
+    <li><b>Open the extension → Generate tab.</b> It should show a green <b>✓ Amazon</b> (or the site you're on) and the number of products found. If it says “Not a supported page,” click <b>↻ Refresh</b>.</li>
+    <li><b>Fill Customer &amp; Representative</b> (optional), pick how many pages to scan, then click <b>🔍 Scan Products</b>. The page will scroll itself to load every image — that's normal.</li>
+    <li><b>Click 📄 Generate PDF.</b> When it's done you can <b>⬇️ Download</b>, <b>📠 Fax</b>, or <b>✉️ Email</b> it.
+      <div class="shot" style="margin-top:10px">
+        <div class="hd"><span>🛒 <b>Catalog Generator</b></span><span class="pill">Generate</span></div>
+        <div class="body">
+          <div class="row2"><div class="fld" style="flex:1">Customer name</div><div class="fld" style="flex:1">Your name</div></div>
+          <div class="btn">🔍 Scan Products</div>
+          <div class="btn green">📄 Generate PDF (24 items)</div>
+          <div class="btn violet">⬇️ Download PDF</div>
+          <div class="row2" style="margin-top:8px"><div class="chip" style="background:#e6faf3;color:#0f9d69">📠 Fax</div><div class="chip" style="background:#eef0ff;color:#4f46e5">✉️ Email</div></div>
+        </div>
+      </div>
+    </li>
+  </ol>
+
+  <h2>Part D — When a customer calls back</h2>
+  <ol class="steps">
+    <li value="13"><b>Open an item:</b> go to the <b>Open Item</b> tab, type the <b>item number</b> the customer reads you (e.g. <code>1047</code>), and click <b>🔍 Open Product Page</b>. The exact product opens in a new tab.
+      <div class="note tip">You only need the <b>item number</b> — not the long Catalog ID.</div>
+    </li>
+    <li><b>Resend a whole catalog:</b> on the same tab, under <b>Resend a catalog</b>, paste the <b>Catalog ID</b>
+      (looks like <code>CAT-20260706-000123</code>) and click <b>📠 Fax</b> or <b>✉️ Email</b>.</li>
+  </ol>
+
+  <h2>Getting updates</h2>
+  <p>When a new version is released, re-download <span class="link-box">https://catalog-ext.pages.dev/dist.zip</span>,
+     unzip it over the same folder (replace files), then on <code>chrome://extensions</code> click the <b>↻ reload</b> icon on the Catalog Generator card.</p>
+
+  <h2>Troubleshooting</h2>
+  <ol class="steps">
+    <li><b>“Not a supported page.”</b> You're not on an Amazon/Walmart/eBay/AliExpress <i>search</i> page, or the page hasn't finished loading. Refresh the web page, then click <b>↻ Refresh</b> in the tool.</li>
+    <li><b>“Incorrect email or password.”</b> Ask your administrator to reset your password on the admin site.</li>
+    <li><b>“No account? Ask your administrator.”</b> Your account hasn't been created yet — contact your admin.</li>
+    <li><b>An item says “no saved product link.”</b> That catalog was made before the latest update. Re-generate it.</li>
+  </ol>
+
+  <div class="note" style="margin-top:26px"><b>Admin only —</b> create companies &amp; workers and view each worker's usage here:
+    <br><span class="link-box">https://catalog-admin-7wd.pages.dev</span></div>
+</div>
+</body>
+</html>

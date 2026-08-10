@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Marketplace Catalog Generator",
-  "version": "1.0.16",
+  "version": "1.0.35",
   "description": "Generate professional printable PDF catalogs.",
   "action": {
     "default_popup": "popup.html",
@@ -23,7 +23,15 @@
         "https://www.walmart.com/*",
         "https://www.ebay.com/*",
         "https://www.aliexpress.com/*",
-        "https://www.aliexpress.us/*"
+        "https://www.aliexpress.us/*",
+        "https://www.target.com/*",
+        "https://www.macys.com/*",
+        "https://www.costco.com/*",
+        "https://www.homedepot.com/*",
+        "https://www.bestbuy.com/*",
+        "https://www.lowes.com/*",
+        "https://www.wayfair.com/*",
+        "https://www.etsy.com/*"
       ],
       "js": [
         "content.js"
@@ -47,14 +55,33 @@
     "https://www.ebay.com/*",
     "https://www.aliexpress.com/*",
     "https://www.aliexpress.us/*",
+    "https://www.target.com/*",
+    "https://www.macys.com/*",
+    "https://www.costco.com/*",
+    "https://www.homedepot.com/*",
+    "https://www.bestbuy.com/*",
+    "https://www.lowes.com/*",
+    "https://www.wayfair.com/*",
+    "https://www.etsy.com/*",
     "https://*.ssl-images-amazon.com/*",
     "https://*.media-amazon.com/*",
     "https://i.ebayimg.com/*",
     "https://i5.walmartimages.com/*",
     "https://*.alicdn.com/*",
+    "https://target.scene7.com/*",
+    "https://*.mcstatic.com/*",
+    "https://*.scene7.com/*",
+    "https://images.costco-static.com/*",
+    "https://images.thdstatic.com/*",
+    "https://pisces.bbystatic.com/*",
+    "https://mobileimages.lowes.com/*",
+    "https://assets.wfcdn.com/*",
+    "https://i.etsystatic.com/*",
     "https://*.googleapis.com/*",
     "https://*.firebaseio.com/*",
-    "https://codelab-77107.firebaseapp.com/*"
+    "https://codelab-77107.firebaseapp.com/*",
+    "https://ext.codelabsus.com/*",
+    "https://catalog-fax-worker.3762437.workers.dev/*"
   ],
   "web_accessible_resources": [
     {

@@ -110,6 +110,19 @@ class StorageManager {
     return cat.itemMappings.find((m) => m.itemNumber === itemNumber) ?? null;
   }
 
+  /** Looks up an item by its number alone across ALL the team's catalogs.
+   *  Item numbers are globally unique, so at most one product matches. */
+  async findItemByNumber(
+    itemNumber: number,
+  ): Promise<{ catalog: CatalogRecord; mapping: ItemMapping } | null> {
+    const cats = await this.getCatalogs();
+    for (const cat of cats) {
+      const mapping = cat.itemMappings.find((m) => m.itemNumber === itemNumber);
+      if (mapping) return { catalog: cat, mapping };
+    }
+    return null;
+  }
+
   async clearAll(): Promise<void> {
     await catalogDB.clear();
     return new Promise((resolve) => chrome.storage.local.remove([KEYS.CATALOG_SEQ], () => resolve()));

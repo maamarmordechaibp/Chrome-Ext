@@ -8,7 +8,11 @@ export const M = 0.35;
 /** Brand accent colours per marketplace. */
 export const MC: Record<string, [number, number, number]> = {
   Amazon: [255, 153, 0], Walmart: [0, 113, 206], eBay: [225, 50, 35],
-  AliExpress: [255, 70, 0], Unknown: [120, 120, 120],
+  AliExpress: [255, 70, 0],
+  Target: [204, 0, 0], "Macy's": [224, 0, 52], Costco: [0, 91, 171],
+  'Home Depot': [246, 96, 0], 'Best Buy': [0, 70, 190], "Lowe's": [0, 68, 148],
+  Wayfair: [123, 24, 154], Etsy: [241, 100, 30],
+  Unknown: [120, 120, 120],
 };
 
 /** Draws a single 5-point star as a vector shape at (cx, cy). */

@@ -3,12 +3,31 @@ import { useEffect, useState } from 'react';
 import type { User } from 'firebase/auth';
 import { authService } from './authService';
 import { session } from './session';
-import type { UserProfile } from '../types';
+import { storageManager } from '../storage/StorageManager';
+import type { Team, UserProfile } from '../types';
 
 export interface AuthState {
   loading: boolean;
   user: User | null;
   profile: UserProfile | null;
+}
+
+/** Applies the company's admin-set name + logo to this rep's PDF branding so
+ *  catalogs are branded with the company automatically after sign-in. */
+async function syncBrandingFromTeam(team: Team | null): Promise<void> {
+  if (!team) return;
+  const settings = await storageManager.getSettings();
+  const next = { ...settings };
+  if (team.name && team.name !== settings.companyName) next.companyName = team.name;
+  if (team.logo && team.logo !== settings.companyLogo) {
+    next.companyLogo = team.logo;
+    next.showLogo = true;
+  }
+  if (next.companyName !== settings.companyName
+    || next.companyLogo !== settings.companyLogo
+    || next.showLogo !== settings.showLogo) {
+    await storageManager.saveSettings(next);
+  }
 }
 
 export function useAuth(): AuthState {
@@ -24,6 +43,10 @@ export function useAuth(): AuthState {
       const profile = await authService.getProfile(user.uid);
       await session.setTeamId(profile?.teamId ?? null);
       setState({ loading: false, user, profile });
+      if (profile?.teamId) {
+        const team = await authService.getTeam(profile.teamId);
+        await syncBrandingFromTeam(team);
+      }
     });
   }, []);
 

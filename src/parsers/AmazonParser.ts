@@ -131,8 +131,23 @@ export class AmazonParser extends BaseParser {
         const descEl = this.firstOf(container, ['[data-cy="secondary-recipe"] span', '.a-row .a-size-base.a-color-secondary']);
         const descRaw = descEl ? this.getText(descEl) : '';
         const description = descRaw.length >= 3 ? descRaw.substring(0, 90) : undefined;
-        const linkEl = container.querySelector('h2 a[href]') as HTMLAnchorElement | null;
-        const url = this.absoluteUrl(this.getAttr(linkEl, 'href'), 'https://www.amazon.com');
+        // Collect candidate links (prefer real /dp/ product links) and take the
+        // first with a navigable href — Amazon sometimes puts javascript:void(0)
+        // placeholders on the title link.
+        const linkCandidates = [
+          ...Array.from(container.querySelectorAll('a[href*="/dp/"], a[href*="/gp/product/"]')),
+          container.querySelector('h2 a[href]'),
+          container.querySelector('[data-cy="title-recipe"] a[href]'),
+          container.querySelector('h2')?.closest('a[href]') ?? null,
+        ].filter(Boolean) as HTMLAnchorElement[];
+        let url = '';
+        for (const a of linkCandidates) {
+          const href = this.getAttr(a, 'href');
+          if (href && !/^(javascript:|#|mailto:|data:)/i.test(href)) {
+            url = this.absoluteUrl(href, 'https://www.amazon.com');
+            if (url) break;
+          }
+        }
         products.push({ id: this.generateId(), itemNumber: itemNumber++, marketplace: this.marketplace,
           title: title.substring(0, 200), imageUrl, price, originalPrice, discount, rating, reviews,
           brand, description, shipping, isPrime, isSponsored, page, url, searchKeywords, timestamp: Date.now() });

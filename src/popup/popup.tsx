@@ -22,6 +22,15 @@ export const Popup: React.FC = () => {
   const [activeTab, setActiveTab] = useState<Tab>('dashboard');
   const version = chrome.runtime?.getManifest?.().version ?? '';
 
+  // Opens the UI in its own window that stays open while the rep browses
+  // (the toolbar popup always closes when it loses focus).
+  const openInWindow = () => {
+    chrome.windows.create({
+      url: chrome.runtime.getURL('popup.html'),
+      type: 'popup', width: 440, height: 660,
+    });
+  };
+
   if (loading) {
     return (
       <div className="w-[400px] min-h-[520px] flex items-center justify-center bg-white text-gray-400 text-sm">
@@ -38,7 +47,7 @@ export const Popup: React.FC = () => {
     return (
       <div className="w-[400px] min-h-[520px] flex flex-col items-center justify-center gap-3 bg-white p-6 text-center">
         <p className="text-sm font-medium text-gray-700">Your account isn’t linked to a team yet.</p>
-        <p className="text-[11px] text-gray-500">Sign out and use “New Team” or “Join Team” with email &amp; password to set one up.</p>
+        <p className="text-[11px] text-gray-500">Ask your administrator to add you to a company, then sign in again.</p>
         <button onClick={() => authService.signOut()}
           className="mt-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded transition-colors">
           Sign out
@@ -56,6 +65,10 @@ export const Popup: React.FC = () => {
         </div>
         <div className="flex items-center gap-2">
           {version && <span className="text-blue-100 text-[10px] font-mono bg-blue-800/40 px-1.5 py-0.5 rounded">v{version}</span>}
+          <button onClick={openInWindow} title="Open in a separate window (stays open while you browse)"
+            className="text-blue-100 hover:text-white text-[11px] bg-blue-800/40 hover:bg-blue-800/70 px-1.5 py-0.5 rounded transition-colors">
+            ⧉
+          </button>
           <button onClick={() => authService.signOut()} title="Sign out"
             className="text-blue-100 hover:text-white text-[10px] bg-blue-800/40 hover:bg-blue-800/70 px-1.5 py-0.5 rounded transition-colors">
             Sign out

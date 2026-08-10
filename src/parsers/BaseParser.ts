@@ -53,6 +53,67 @@ export abstract class BaseParser {
   protected generateId(): string {
     return `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
   }
+
+  /** Extracts a currency amount from an element (optionally the first matching
+   *  child), preferring a value that includes cents so split "$37" + "61"
+   *  visual prices never win over the true "$37.61". Returns '' when none. */
+  protected priceFrom(el: Element | null | undefined, selectors?: string[]): string {
+    if (!el) return '';
+    const target = selectors ? (this.firstOf(el, selectors) ?? el) : el;
+    const text = this.getText(target).replace(/\s+/g, ' ');
+    const cents = text.match(/[$£€]\s?[\d,]+\.\d{2}/);
+    if (cents) return cents[0].replace(/\s/g, '');
+    const whole = text.match(/[$£€]\s?[\d,]+/);
+    return whole ? whole[0].replace(/\s/g, '') : '';
+  }
+
+  /** Discovers product tiles by climbing from each product link to the widest
+   *  ancestor that still wraps a single product. `keyOf` maps an href to a
+   *  stable product id, so a tile's image and title links (both pointing at the
+   *  same product) collapse into one tile instead of two. Redesign-proof: it
+   *  keys off product links rather than volatile CSS class names. */
+  protected discoverTiles(doc: Document, linkSelector: string, keyOf: (href: string) => string): Element[] {
+    const tiles: Element[] = [];
+    const seen = new Set<Element>();
+    for (const link of Array.from(doc.querySelectorAll(linkSelector))) {
+      const href = this.getAttr(link, 'href');
+      if (!href) continue;
+      const key = keyOf(href);
+      let best: Element = link;
+      let el: Element | null = link;
+      while (el && el.parentElement && el.parentElement.tagName !== 'BODY') {
+        const parent = el.parentElement;
+        const keys = new Set(
+          Array.from(parent.querySelectorAll(linkSelector)).map((a) => keyOf(this.getAttr(a, 'href'))),
+        );
+        keys.delete(key);
+        if (keys.size > 0) break; // parent reaches into a neighbouring product
+        best = parent;
+        el = parent;
+      }
+      if (!seen.has(best)) { seen.add(best); tiles.push(best); }
+    }
+    return tiles;
+  }
+
+  /** Reads the best available image URL from a tile, tolerating lazy-loading
+   *  (real URL often sits in data-src/srcset rather than src). */
+  protected pickImage(container: Element): string {
+    const imgs = Array.from(container.querySelectorAll('img')) as HTMLImageElement[];
+    for (const img of imgs) {
+      const srcset = img.getAttribute('srcset') || img.getAttribute('data-srcset') || '';
+      if (srcset) {
+        const best = srcset.split(',').map((s) => s.trim().split(/\s+/)[0])
+          .filter((u) => u && !u.startsWith('data:')).pop();
+        if (best) return best.startsWith('//') ? `https:${best}` : best;
+      }
+      const cand = [img.getAttribute('src'), img.getAttribute('data-src'), img.getAttribute('data-lazy'), img.getAttribute('data-image')]
+        .map((s) => (s ?? '').trim()).find((s) => s && !s.startsWith('data:'));
+      if (cand) return cand.startsWith('//') ? `https:${cand}` : cand;
+    }
+    return '';
+  }
+
   abstract extractPageInfo(doc: Document): PageInfo;
   abstract extractProducts(doc: Document, sq: string, page: number, start: number): Product[];
 
