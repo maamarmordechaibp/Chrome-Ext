@@ -5,18 +5,10 @@
 import { CatalogMeta, Product } from '../types';
 import { storageManager } from '../storage/StorageManager';
 import { pdfGenerator } from '../pdf/PDFGenerator';
+import { fetchImagesBatched } from './fetchImages';
 
 function fetchImages(urls: string[]): Promise<(string | null)[]> {
-  return new Promise((resolve, reject) => {
-    if (!urls.length) { resolve([]); return; }
-    chrome.runtime.sendMessage({ type: 'FETCH_IMAGES_BATCH', payload: { urls } }, (resp) => {
-      if (chrome.runtime.lastError || !resp?.success) {
-        reject(new Error(resp?.error ?? 'Image fetch failed'));
-      } else {
-        resolve(resp.data as (string | null)[]);
-      }
-    });
-  });
+  return fetchImagesBatched(urls);
 }
 
 /** Returns a PDF Blob for the catalog, regenerating it if not stored locally. */

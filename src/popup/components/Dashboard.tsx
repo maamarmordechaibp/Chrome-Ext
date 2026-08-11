@@ -5,6 +5,7 @@ import { pdfGenerator }   from '../../pdf/PDFGenerator';
 import { crawl }          from '../crawler';
 import { captureDetail }  from '../detailCapture';
 import { makeThumbnail, redactPeople }  from '../imageUtil';
+import { fetchImagesBatched } from '../fetchImages';
 import { ProductList }    from './ProductList';
 import { SendButtons }    from './SendButtons';
 import { logUsage, reserveItems } from '../../cloud/faxService';
@@ -102,12 +103,7 @@ export const Dashboard: React.FC = () => {
       const start = await reserveItems(chosen.length);
       const selected = chosen.map((p, i) => ({ ...p, itemNumber: start + i }));
       setStatus('Fetching images…');
-      const images = await new Promise<string[]>((resolve, reject) => {
-        chrome.runtime.sendMessage({ type: 'FETCH_IMAGES_BATCH', payload: { urls: selected.map((p) => p.imageUrl) } }, (resp) => {
-          if (chrome.runtime.lastError || !resp?.success) reject(new Error(resp?.error ?? 'Image fetch failed'));
-          else resolve(resp.data as string[]);
-        });
-      });
+      const images = await fetchImagesBatched(selected.map((p) => p.imageUrl));
       const enriched = selected.map((p, i) => ({ ...p, imageBase64: images[i] ?? undefined }));
       if (settings.hidePeople) {
         setStatus('Reviewing images…');
