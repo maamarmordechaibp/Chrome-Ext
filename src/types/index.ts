@@ -2,6 +2,12 @@ export type Marketplace =
   | 'Amazon' | 'Walmart' | 'eBay' | 'AliExpress'
   | 'Target' | "Macy's" | 'Costco' | 'Home Depot'
   | 'Best Buy' | "Lowe's" | 'Wayfair' | 'Etsy'
+  | "Kohl's" | 'JCPenney' | 'Nordstrom' | 'Nordstrom Rack'
+  | "BJ's" | "Sam's Club" | 'Newegg' | 'Bed Bath & Beyond'
+  | 'Old Navy' | 'Gap' | 'Banana Republic' | 'H&M' | 'Zara' | 'ASOS'
+  | 'DSW' | 'Foot Locker' | "Dick's" | 'IKEA' | 'Ashley'
+  | 'Pottery Barn' | 'Crate & Barrel' | 'Container Store' | 'Williams Sonoma'
+  | 'B&H Photo' | 'Micro Center' | 'Dell' | 'HP' | 'Lenovo'
   | 'Unknown';
 
 /** How many result pages to scan when generating a catalog. */

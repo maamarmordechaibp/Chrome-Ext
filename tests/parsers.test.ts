@@ -12,6 +12,9 @@ import { BestBuyParser } from '../src/parsers/BestBuyParser';
 import { LowesParser } from '../src/parsers/LowesParser';
 import { WayfairParser } from '../src/parsers/WayfairParser';
 import { EtsyParser } from '../src/parsers/EtsyParser';
+import { GenericStoreParser } from '../src/parsers/GenericStoreParser';
+import { STORE_CONFIGS } from '../src/parsers/storeConfigs';
+import { parserRegistry } from '../src/parsers/ParserRegistry';
 import { loadFixture } from './fixtures/loader';
 
 /**
@@ -442,6 +445,69 @@ describe('EtsyParser', () => {
     expect(products[0].seller).toBe('LeatherCraftCo');
     expect(products[0].url).toContain('/listing/1234567890');
     expect(products[1].price).toBe('$24.50');
+  });
+});
+
+describe('GenericStoreParser', () => {
+  const generic = (mp: string) =>
+    new GenericStoreParser(STORE_CONFIGS.find((c) => c.marketplace === mp)!);
+
+  it('extracts Newegg-style tiles with custom selectors', () => {
+    const html = `<div class="list">
+      <div class="item-cell">
+        <a class="item-title" href="/p/N82E16819113567">Intel Core i7 Processor</a>
+        <img src="https://c1.neweggimages.com/cpu.jpg" alt="cpu" />
+        <li class="price-current">$299.99</li>
+      </div>
+      <div class="item-cell">
+        <a class="item-title" href="/p/N82E16820147xyz">Samsung SSD 1TB</a>
+        <img src="https://c1.neweggimages.com/ssd.jpg" alt="ssd" />
+        <li class="price-current">$89.99</li>
+      </div>
+    </div>`;
+    const doc = new JSDOM(html, { url: 'https://www.newegg.com/p/pl?d=cpu' })
+      .window.document as unknown as Document;
+    const parser = generic('Newegg');
+    expect(parser.extractPageInfo(doc).searchKeywords).toBe('cpu');
+    const products = parser.extractProducts(doc, 'cpu', 1, 1);
+    expect(products.length).toBe(2);
+    expect(products[0].title).toContain('Intel Core i7');
+    expect(products[0].price).toBe('$299.99');
+    expect(products[0].url).toContain('/p/N82E16819113567');
+    expect(products[1].price).toBe('$89.99');
+  });
+
+  it('discovers tiles via product links with default selectors (Kohl\'s)', () => {
+    const html = `<ul>
+      <li class="products">
+        <a class="product-title" href="/product/prd-1234567/nike-shoes.jsp">Nike Running Shoes</a>
+        <img src="https://media.kohls.com/nike.jpg" alt="nike" />
+        <span class="price">$79.99</span>
+      </li>
+      <li class="products">
+        <a class="product-title" href="/product/prd-7654321/adidas.jsp">Adidas Sneakers</a>
+        <img src="https://media.kohls.com/adidas.jpg" alt="adidas" />
+        <span class="price">$64.99</span>
+      </li>
+    </ul>`;
+    const doc = new JSDOM(html, { url: 'https://www.kohls.com/search.jsp?search=shoes' })
+      .window.document as unknown as Document;
+    const parser = generic("Kohl's");
+    const products = parser.extractProducts(doc, 'shoes', 1, 1);
+    expect(products.length).toBe(2);
+    expect(products[0].title).toContain('Nike');
+    expect(products[0].price).toBe('$79.99');
+    expect(products[0].url).toContain('/product/prd-1234567');
+    expect(products[1].url).toContain('/product/prd-7654321');
+  });
+
+  it('routes new store hosts to a parser and detects detail pages', () => {
+    expect(parserRegistry.getMarketplaceName('https://www.newegg.com/p/pl?d=gpu')).toBe('Newegg');
+    expect(parserRegistry.getMarketplaceName('https://www.nordstrom.com/sr?keyword=boots')).toBe('Nordstrom');
+    expect(parserRegistry.getMarketplaceName('https://www.bhphotovideo.com/c/search?q=lens')).toBe('B&H Photo');
+    const detailDoc = new JSDOM('<h1>Item</h1>', { url: 'https://www.newegg.com/p/N82E16819113567' })
+      .window.document as unknown as Document;
+    expect(parserRegistry.getParser('https://www.newegg.com/p/x')!.isDetailPage(detailDoc)).toBe(true);
   });
 });
 

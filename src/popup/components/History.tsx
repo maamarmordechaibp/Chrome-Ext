@@ -9,7 +9,21 @@ const MC: Record<string, string> = {
   Target:'bg-red-100 text-red-800', "Macy's":'bg-rose-100 text-rose-800',
   Costco:'bg-blue-100 text-blue-800', 'Home Depot':'bg-orange-100 text-orange-800',
   'Best Buy':'bg-blue-100 text-blue-800', "Lowe's":'bg-blue-100 text-blue-900',
-  Wayfair:'bg-purple-100 text-purple-800', Etsy:'bg-orange-100 text-orange-900'
+  Wayfair:'bg-purple-100 text-purple-800', Etsy:'bg-orange-100 text-orange-900',
+  "Kohl's":'bg-gray-100 text-gray-800', JCPenney:'bg-red-100 text-red-800',
+  Nordstrom:'bg-gray-100 text-gray-900', 'Nordstrom Rack':'bg-gray-100 text-gray-700',
+  "BJ's":'bg-red-100 text-red-800', "Sam's Club":'bg-blue-100 text-blue-800',
+  Newegg:'bg-orange-100 text-orange-800', 'Bed Bath & Beyond':'bg-blue-100 text-blue-800',
+  'Old Navy':'bg-blue-100 text-blue-900', Gap:'bg-blue-100 text-blue-900',
+  'Banana Republic':'bg-stone-100 text-stone-800', 'H&M':'bg-red-100 text-red-800',
+  Zara:'bg-gray-100 text-gray-900', ASOS:'bg-gray-100 text-gray-900',
+  DSW:'bg-red-100 text-red-800', 'Foot Locker':'bg-gray-100 text-gray-900',
+  "Dick's":'bg-green-100 text-green-800', IKEA:'bg-blue-100 text-blue-800',
+  Ashley:'bg-rose-100 text-rose-800', 'Pottery Barn':'bg-amber-100 text-amber-900',
+  'Crate & Barrel':'bg-gray-100 text-gray-800', 'Container Store':'bg-teal-100 text-teal-800',
+  'Williams Sonoma':'bg-amber-100 text-amber-900', 'B&H Photo':'bg-blue-100 text-blue-800',
+  'Micro Center':'bg-green-100 text-green-800', Dell:'bg-sky-100 text-sky-800',
+  HP:'bg-sky-100 text-sky-800', Lenovo:'bg-red-100 text-red-800'
 };
 const fmt = (ts: number) => new Date(ts).toLocaleString('en-US', { month:'short', day:'numeric', year:'numeric', hour:'2-digit', minute:'2-digit' });
 

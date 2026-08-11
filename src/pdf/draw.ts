@@ -12,6 +12,13 @@ export const MC: Record<string, [number, number, number]> = {
   Target: [204, 0, 0], "Macy's": [224, 0, 52], Costco: [0, 91, 171],
   'Home Depot': [246, 96, 0], 'Best Buy': [0, 70, 190], "Lowe's": [0, 68, 148],
   Wayfair: [123, 24, 154], Etsy: [241, 100, 30],
+  "Kohl's": [0, 0, 0], JCPenney: [204, 0, 51], Nordstrom: [0, 0, 0], 'Nordstrom Rack': [70, 70, 70],
+  "BJ's": [227, 30, 36], "Sam's Club": [0, 122, 197], Newegg: [255, 140, 0], 'Bed Bath & Beyond': [0, 114, 206],
+  'Old Navy': [0, 74, 152], Gap: [0, 40, 104], 'Banana Republic': [70, 61, 53], 'H&M': [227, 6, 19],
+  Zara: [30, 30, 30], ASOS: [24, 24, 24], DSW: [200, 16, 46], 'Foot Locker': [0, 0, 0],
+  "Dick's": [0, 100, 60], IKEA: [0, 88, 163], Ashley: [140, 30, 40], 'Pottery Barn': [90, 70, 55],
+  'Crate & Barrel': [40, 40, 40], 'Container Store': [0, 120, 90], 'Williams Sonoma': [60, 50, 45],
+  'B&H Photo': [0, 90, 160], 'Micro Center': [0, 102, 51], Dell: [0, 118, 206], HP: [0, 150, 214], Lenovo: [225, 37, 27],
   Unknown: [120, 120, 120],
 };
 
