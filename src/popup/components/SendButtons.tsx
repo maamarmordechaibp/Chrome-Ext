@@ -5,10 +5,12 @@ import { sendFax, sendEmail } from '../../cloud/faxService';
 
 interface Props {
   getBlob: () => Promise<Blob | null | undefined>;
+  /** Optional fax-optimised (grayscale) source; falls back to getBlob. */
+  getFaxBlob?: () => Promise<Blob | null | undefined>;
   filenameBase: string;
 }
 
-export const SendButtons: React.FC<Props> = ({ getBlob, filenameBase }) => {
+export const SendButtons: React.FC<Props> = ({ getBlob, getFaxBlob, filenameBase }) => {
   const [busy, setBusy] = useState<'fax' | 'email' | null>(null);
   const [msg, setMsg] = useState('');
   const [err, setErr] = useState('');
@@ -17,12 +19,13 @@ export const SendButtons: React.FC<Props> = ({ getBlob, filenameBase }) => {
     kind: 'fax' | 'email',
     promptText: string,
     send: (blob: Blob, to: string) => Promise<void>,
+    blobGetter: () => Promise<Blob | null | undefined> = getBlob,
   ) => {
     const to = window.prompt(promptText);
     if (!to || !to.trim()) return;
     setBusy(kind); setMsg(''); setErr('');
     try {
-      const blob = await getBlob();
+      const blob = await blobGetter();
       if (!blob) throw new Error('No PDF available for this catalog.');
       await send(blob, to.trim());
       setMsg(`${kind === 'fax' ? 'Fax' : 'Email'} sent to ${to.trim()}.`);
@@ -38,7 +41,7 @@ export const SendButtons: React.FC<Props> = ({ getBlob, filenameBase }) => {
       <div className="flex gap-1.5">
         <button
           onClick={() => run('fax', 'Fax number to send to (e.g. +15555550123):',
-            (b, to) => sendFax(b, to))}
+            (b, to) => sendFax(b, to), getFaxBlob ?? getBlob)}
           disabled={busy !== null}
           className="flex-1 text-[10px] py-1.5 bg-teal-50 hover:bg-teal-100 border border-teal-200 rounded-lg text-teal-700 disabled:opacity-50">
           {busy === 'fax' ? '⏳ Faxing…' : '📠 Fax'}

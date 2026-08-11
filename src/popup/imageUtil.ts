@@ -23,6 +23,35 @@ function loadImage(src: string): Promise<HTMLImageElement> {
   });
 }
 
+/** Converts an image to high-contrast grayscale for fax output. Faxes transmit
+ *  1-bit monochrome, so colour photos otherwise turn to mud; boosting contrast
+ *  on a luma-grayscale version keeps edges and detail legible. Returns the
+ *  original data URL unchanged on any failure. */
+export async function toFaxGray(dataUrl: string): Promise<string> {
+  try {
+    const img = await loadImage(dataUrl);
+    const w = img.width, h = img.height;
+    if (!w || !h) return dataUrl;
+    const canvas = document.createElement('canvas');
+    canvas.width = w; canvas.height = h;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return dataUrl;
+    ctx.drawImage(img, 0, 0);
+    const data = ctx.getImageData(0, 0, w, h);
+    const d = data.data;
+    const contrast = 1.35; // >1 widens the tonal range so photos don't fax muddy.
+    const intercept = 128 * (1 - contrast);
+    for (let i = 0; i < d.length; i += 4) {
+      let y = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
+      y = y * contrast + intercept;
+      y = y < 0 ? 0 : y > 255 ? 255 : y;
+      d[i] = d[i + 1] = d[i + 2] = y;
+    }
+    ctx.putImageData(data, 0, 0);
+    return canvas.toDataURL('image/jpeg', 0.85);
+  } catch { return dataUrl; }
+}
+
 /**
  * Modesty filter: uses an in-browser AI model (BodyPix) to locate the person, then paints
  * over only the person's exposed SKIN inside that region — face, hands, arms and legs —

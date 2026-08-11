@@ -1,10 +1,10 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { PageInfo, Product, Settings, CatalogRecord, ItemMapping, CatalogMeta, CrawlMode } from '../../types';
 import { storageManager } from '../../storage/StorageManager';
 import { pdfGenerator }   from '../../pdf/PDFGenerator';
 import { crawl }          from '../crawler';
 import { captureDetail }  from '../detailCapture';
-import { makeThumbnail, redactPeople }  from '../imageUtil';
+import { makeThumbnail, redactPeople, toFaxGray }  from '../imageUtil';
 import { fetchImagesBatched } from '../fetchImages';
 import { ProductList }    from './ProductList';
 import { SendButtons }    from './SendButtons';
@@ -46,6 +46,7 @@ export const Dashboard: React.FC = () => {
   const [progress,  setProgress]  = useState(0);
   const [phase, setPhase] = useState<'idle'|'scanning'|'images'|'pdf'|'done'>('idle');
   const [pdfBlob, setPdfBlob] = useState<Blob | null>(null);
+  const faxSourceRef = useRef<{ products: Product[]; settings: Settings; meta: CatalogMeta } | null>(null);
 
   useEffect(() => {
     storageManager.getSettings().then((s) => {
@@ -126,6 +127,9 @@ export const Dashboard: React.FC = () => {
         customerName: customer.trim() || undefined, representative: rep.trim() || undefined,
       };
       const blob = await pdfGenerator.generate(enriched, settings, meta);
+      // Keep the full source so the fax button can rebuild a grayscale variant
+      // (download/email stay colour) without re-fetching images.
+      faxSourceRef.current = { products: enriched, settings, meta };
       const thumb = await makeThumbnail(enriched.find((p) => p.imageBase64)?.imageBase64 ?? '');
       const maps: ItemMapping[] = enriched.map((p) => ({ itemNumber: p.itemNumber, url: p.url, page: p.page, marketplace: p.marketplace, timestamp: p.timestamp, title: p.title, imageUrl: p.imageUrl }));
       const rec: CatalogRecord = {
@@ -150,6 +154,17 @@ export const Dashboard: React.FC = () => {
     a.download = `${catalogId || pageInfo?.marketplace}_${kw}.pdf`;
     a.click(); URL.revokeObjectURL(a.href);
   }, [pdfBlob, pageInfo, catalogId]);
+
+  // Builds a fax-optimised (high-contrast grayscale) copy of the catalog PDF so
+  // faxes render sharply; download/email keep the colour version above.
+  const makeFaxBlob = useCallback(async (): Promise<Blob | null> => {
+    const src = faxSourceRef.current;
+    if (!src) return pdfBlob;
+    const items = await Promise.all(src.products.map(async (p) => ({
+      ...p, imageBase64: p.imageBase64 ? await toFaxGray(p.imageBase64) : p.imageBase64,
+    })));
+    return pdfGenerator.generate(items, src.settings, src.meta);
+  }, [pdfBlob]);
 
   const captureProduct = useCallback(async () => {
     if (!settings) return;
@@ -248,7 +263,7 @@ export const Dashboard: React.FC = () => {
                 {pdfBlob && (
                   <>
                     <button onClick={download} className="w-full py-2.5 bg-violet-500 hover:bg-violet-600 text-white text-xs font-semibold rounded-lg">⬇️ Download PDF</button>
-                    <SendButtons getBlob={async () => pdfBlob} filenameBase={catalogId || 'catalog'} />
+                    <SendButtons getBlob={async () => pdfBlob} getFaxBlob={makeFaxBlob} filenameBase={catalogId || 'catalog'} />
                   </>
                 )}
               </div>
