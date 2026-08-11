@@ -28,7 +28,7 @@ export const STORE_CONFIGS: StoreConfig[] = [
     detailPath: /\/p\//, linkSelector: 'a[href*="/p/"]', keyRegex: /\/p\/[^/]*\/(\d+)/,
     keywordParams: ['searchTerm', 'q'], brandSelectors: brand },
   { marketplace: 'Newegg', hostPattern: /newegg\.com/, base: 'https://www.newegg.com',
-    detailPath: /\/p\//, linkSelector: 'a[href*="/p/"]', keyRegex: /\/p\/([A-Za-z0-9]+)/,
+    detailPath: /\/p\//, linkSelector: 'a[href*="/p/"]', keyRegex: /\/p\/([A-Za-z0-9-]+)/,
     keywordParams: ['d', 'description'], tileSelectors: ['.item-cell', '[class*="item-cell"]'],
     titleSelectors: ['.item-title', '[class*="item-title"]'], priceSelectors: ['.price-current', '[class*="price"]'] },
   { marketplace: 'Bed Bath & Beyond', hostPattern: /bedbathandbeyond\.com/, base: 'https://www.bedbathandbeyond.com',
