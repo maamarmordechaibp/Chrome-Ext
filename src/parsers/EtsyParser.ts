@@ -62,7 +62,7 @@ export class EtsyParser extends BaseParser {
         const titleEl = this.firstOf(container, ['h3[data-listing-card-title]', '.v2-listing-card__title', 'h3', 'h2']);
         const title = this.getText(titleEl) || this.getAttr(linkEl, 'title') || this.getAttr(linkEl, 'aria-label') || this.getAttr(container.querySelector('img'), 'alt');
         if (!title || title.length < 3) continue;
-        const imageUrl = this.pickImage(container);
+        const imageUrl = this.pickTileImage(container);
         const price = this.priceFrom(container, ['.wt-text-title-01', '[data-buy-box-region="price"]', '.n-listing-card__price', '[class*="price"]']);
         const originalPrice = this.priceFrom(container, ['.wt-text-strikethrough', '[data-original-price]']) || undefined;
         const sellerEl = this.firstOf(container, ['[data-shop-name]', '.v2-listing-card__shop', 'p.wt-text-caption']);

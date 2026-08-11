@@ -107,7 +107,7 @@ export class GenericStoreParser extends BaseParser {
           || this.getAttr(linkEl, 'aria-label') || this.getAttr(linkEl, 'title')
           || this.getAttr(container.querySelector('img'), 'alt');
         if (!title || title.length < 3) continue;
-        const imageUrl = this.pickImage(container);
+        const imageUrl = this.pickTileImage(container);
         const price = this.priceFrom(container, this.cfg.priceSelectors ?? DEFAULT_PRICE);
         const brandEl = this.cfg.brandSelectors ? this.firstOf(container, this.cfg.brandSelectors) : null;
         const brand = brandEl ? this.getText(brandEl).substring(0, 40) : undefined;

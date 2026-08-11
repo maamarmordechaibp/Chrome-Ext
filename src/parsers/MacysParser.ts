@@ -66,7 +66,7 @@ export class MacysParser extends BaseParser {
         const brand = brandEl ? this.getText(brandEl).substring(0, 40) : undefined;
         const title = this.getText(titleEl) || this.getAttr(linkEl, 'aria-label') || this.getAttr(container.querySelector('img'), 'alt');
         if (!title || title.length < 3) continue;
-        const imageUrl = this.pickImage(container);
+        const imageUrl = this.pickTileImage(container);
         const price = this.priceFrom(container, ['[data-auto="main-price"]', '.prices .price', '[class*="price"]']);
         const originalPrice = this.priceFrom(container, ['[data-auto="original-price"]', '.was-price']) || undefined;
         if (url) seen.add(url);

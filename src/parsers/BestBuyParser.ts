@@ -64,7 +64,7 @@ export class BestBuyParser extends BaseParser {
         const titleEl = this.firstOf(container, ['.sku-title', '[data-testid="product-title"]', 'h4', 'h3']);
         const title = this.getText(titleEl) || this.getAttr(linkEl, 'aria-label') || this.getAttr(container.querySelector('img'), 'alt');
         if (!title || title.length < 3) continue;
-        const imageUrl = this.pickImage(container);
+        const imageUrl = this.pickTileImage(container);
         const price = this.priceFrom(container, ['[data-testid="customer-price"]', '.priceView-customer-price span', '[class*="price"]']);
         const ratingEl = container.querySelector('.c-ratings-reviews, [class*="rating"]');
         const rating = ratingEl ? this.getText(ratingEl).match(/[\d.]+/)?.[0] : undefined;

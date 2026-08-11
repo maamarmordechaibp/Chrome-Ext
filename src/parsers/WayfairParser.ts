@@ -64,7 +64,7 @@ export class WayfairParser extends BaseParser {
         const titleEl = this.firstOf(container, ['[data-testid="ProductCard-name"]', '.ProductCard-name', 'h3', 'h2']);
         const title = this.getText(titleEl) || this.getAttr(linkEl, 'aria-label') || this.getAttr(container.querySelector('img'), 'alt');
         if (!title || title.length < 3) continue;
-        const imageUrl = this.pickImage(container);
+        const imageUrl = this.pickTileImage(container);
         const price = this.priceFrom(container, ['[data-testid="PriceDisplay"]', '.SFPrice', '[class*="Price"]']);
         const originalPrice = this.priceFrom(container, ['[data-testid="listPrice"]', '.StrikethroughPrice']) || undefined;
         const ratingEl = container.querySelector('[data-testid="review-rating"], [class*="ReviewStars"]');

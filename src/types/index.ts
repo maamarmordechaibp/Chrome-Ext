@@ -8,6 +8,15 @@ export type Marketplace =
   | 'DSW' | 'Foot Locker' | "Dick's" | 'IKEA' | 'Ashley'
   | 'Pottery Barn' | 'Crate & Barrel' | 'Container Store' | 'Williams Sonoma'
   | 'B&H Photo' | 'Micro Center' | 'Dell' | 'HP' | 'Lenovo'
+  | 'Temu' | 'Uniqlo' | 'SHEIN' | 'Academy Sports'
+  | 'West Elm' | 'CB2' | 'Overstock' | 'Lamps Plus' | 'Build.com' | 'LL Flooring'
+  | 'Ace Hardware' | 'True Value' | 'Menards'
+  | 'Harbor Freight' | 'Northern Tool' | 'Tractor Supply' | 'Ferguson' | 'Grainger' | 'Fastenal'
+  | 'Apple' | 'Samsung' | 'GameStop'
+  | 'American Eagle' | 'Abercrombie & Fitch' | 'Lululemon' | 'Nike' | 'Adidas' | 'Skechers'
+  | 'Kroger' | 'Publix' | 'Albertsons' | 'Safeway' | 'Wegmans' | 'Whole Foods'
+  | "Trader Joe's" | 'Meijer' | 'H-E-B' | 'Aldi'
+  | 'LEGO' | 'Mattel' | 'Chewy' | 'Petco' | 'PetSmart' | 'QVC' | 'HSN' | 'Michaels' | 'Joann'
   | 'Unknown';
 
 /** How many result pages to scan when generating a catalog. */

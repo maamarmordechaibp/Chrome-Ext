@@ -82,7 +82,7 @@ export abstract class BaseParser {
       let best: Element = link;
       let el: Element | null = link;
       while (el && el.parentElement && el.parentElement.tagName !== 'BODY') {
-        const parent = el.parentElement;
+        const parent: Element = el.parentElement;
         const keys = new Set(
           Array.from(parent.querySelectorAll(linkSelector)).map((a) => keyOf(this.getAttr(a, 'href'))),
         );
@@ -98,7 +98,7 @@ export abstract class BaseParser {
 
   /** Reads the best available image URL from a tile, tolerating lazy-loading
    *  (real URL often sits in data-src/srcset rather than src). */
-  protected pickImage(container: Element): string {
+  protected pickTileImage(container: Element): string {
     const imgs = Array.from(container.querySelectorAll('img')) as HTMLImageElement[];
     for (const img of imgs) {
       const srcset = img.getAttribute('srcset') || img.getAttribute('data-srcset') || '';

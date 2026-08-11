@@ -104,7 +104,7 @@ export class WalmartParser extends BaseParser {
     let best: Element = link;
     let el: Element | null = link;
     while (el && el.parentElement && el.parentElement.tagName !== 'BODY') {
-      const parent = el.parentElement;
+      const parent: Element = el.parentElement;
       const keys = new Set(
         Array.from(parent.querySelectorAll('a[href*="/ip/"]'))
           .map((a) => this.productKey(this.getAttr(a, 'href'))),

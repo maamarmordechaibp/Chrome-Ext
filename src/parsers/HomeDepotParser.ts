@@ -65,7 +65,7 @@ export class HomeDepotParser extends BaseParser {
         const titleEl = this.firstOf(container, ['[data-testid="product-header"]', '.product-pod__title', 'header span', 'h3', 'h2']);
         const title = this.getText(titleEl) || this.getAttr(linkEl, 'aria-label') || this.getAttr(container.querySelector('img'), 'alt');
         if (!title || title.length < 3) continue;
-        const imageUrl = this.pickImage(container);
+        const imageUrl = this.pickTileImage(container);
         const price = this.priceFrom(container, ['[data-testid="product-price"]', '.price-format__main-price', '[class*="price"]']);
         const brandEl = this.firstOf(container, ['.product-pod__brand-name', '[data-testid="attribute-brandname-above"]']);
         const brand = brandEl ? this.getText(brandEl).substring(0, 40) : undefined;

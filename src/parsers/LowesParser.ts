@@ -66,7 +66,7 @@ export class LowesParser extends BaseParser {
         const brand = brandEl ? this.getText(brandEl).substring(0, 40) : undefined;
         const title = this.getText(titleEl) || this.getAttr(linkEl, 'aria-label') || this.getAttr(container.querySelector('img'), 'alt');
         if (!title || title.length < 3) continue;
-        const imageUrl = this.pickImage(container);
+        const imageUrl = this.pickTileImage(container);
         const price = this.priceFrom(container, ['[data-testid="main-price"]', '.main-price', '[class*="price"]']);
         const ratingEl = container.querySelector('[data-testid="rating"], [class*="rating"]');
         const rating = ratingEl ? this.getText(ratingEl).match(/[\d.]+/)?.[0] : undefined;
