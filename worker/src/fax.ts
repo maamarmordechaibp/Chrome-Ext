@@ -30,6 +30,17 @@ export async function serveMedia(env: Env, token: string): Promise<Response> {
   });
 }
 
+/** Coerces a user-typed fax number into E.164, which SignalWire requires.
+ *  Accepts common US formats like "(845) 241-3473" or "845-241-3473". */
+function toE164(raw: string): string {
+  const t = (raw || '').trim();
+  if (t.startsWith('+')) return '+' + t.slice(1).replace(/\D/g, '');
+  const digits = t.replace(/\D/g, '');
+  if (digits.length === 10) return `+1${digits}`;
+  if (digits.length === 11 && digits.startsWith('1')) return `+${digits}`;
+  return digits ? `+${digits}` : t;
+}
+
 /** Sends a fax via SignalWire's Compatibility (LaML) API. */
 export async function sendFax(
   env: Env,
@@ -45,8 +56,8 @@ export async function sendFax(
     `https://${space}/api/laml/2010-04-01/Accounts/` +
     `${projectId}/Faxes.json`;
   const body = new URLSearchParams({
-    From: faxFrom,
-    To: to,
+    From: toE164(faxFrom),
+    To: toE164(to),
     MediaUrl: mediaUrl,
   });
   const auth = btoa(`${projectId}:${token}`);

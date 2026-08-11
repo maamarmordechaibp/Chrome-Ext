@@ -113,6 +113,7 @@ async function route(req: Request, env: Env): Promise<Response> {
         await incrementFields(env, 'users', uid, { usage_faxes: 1 });
         return json(result, 200, env, req);
       } catch (e) {
+        console.error('Email send failed:', (e as Error)?.stack || String(e));
         return json({ error: (e as Error).message }, 502, env, req);
       }
     }
@@ -148,6 +149,7 @@ async function route(req: Request, env: Env): Promise<Response> {
         await incrementFields(env, 'users', uid, { usage_faxes: 1 });
         return json(result, 200, env, req);
       } catch (e) {
+        console.error('Fax send failed:', (e as Error)?.stack || String(e));
         return json({ error: (e as Error).message }, 502, env, req);
       }
     }
