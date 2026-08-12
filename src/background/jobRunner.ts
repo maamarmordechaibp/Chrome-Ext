@@ -80,12 +80,17 @@ export async function runJob(jobId: string): Promise<void> {
   await storageManager.updateJob(jobId, { status: 'running', progress: 5, message: 'Searching marketplaces…' });
   try {
     const options = { mode: job.mode, maxPages: job.maxPages };
-    const scans = await crawlMarketplaces(job.targetMarketplaces, job.keywords, options, (p) => {
+    const { scans, skipped } = await crawlMarketplaces(job.targetMarketplaces, job.keywords, options, (p) => {
       void storageManager.updateJob(jobId, { message: p.message });
     });
 
     const candidates = dedup(scans.flatMap((s) => s.products));
-    if (candidates.length === 0) throw new Error('No similar items found on the selected websites.');
+    if (candidates.length === 0) {
+      const detail = skipped.length
+        ? ` (${skipped.map((s) => `${s.marketplace}: ${s.reason}`).join('; ')})`
+        : '';
+      throw new Error(`No similar items found on the selected websites.${detail}`);
+    }
 
     const finalProducts = selectProducts(job, candidates).slice(0, MAX_ITEMS);
     if (finalProducts.length === 0) throw new Error('No products matched closely enough to send.');
