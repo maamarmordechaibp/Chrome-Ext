@@ -90,6 +90,47 @@ export interface CatalogRecord {
   itemMappings: ItemMapping[];
 }
 
+/** Lifecycle state of a background "find similar & send" job. */
+export type JobStatus = 'queued' | 'running' | 'sending' | 'done' | 'error';
+
+/** How similar items are discovered for a background job. */
+export type MatchMode = 'keyword' | 'per-item' | 'both';
+
+/** Where a finished catalog is delivered. Either or both may be set. */
+export interface JobDestinations { email?: string; fax?: string; }
+
+/** A minimal source item used for per-item similarity matching. */
+export interface JobSourceItem { title: string; price?: string; }
+
+/** A background job that searches similar items across marketplaces and, when
+ *  done, auto-sends the generated catalog. Persisted in IndexedDB so it survives
+ *  service-worker restarts and runs with the popup closed. */
+export interface BackgroundJob {
+  id: string;
+  status: JobStatus;
+  createdAt: number;
+  updatedAt: number;
+  /** Catalog this job expands on, when started from an existing catalog. */
+  sourceCatalogId?: string;
+  /** Keywords used to search for similar items. */
+  keywords: string;
+  /** Marketplaces to search for similar items. */
+  targetMarketplaces: Marketplace[];
+  mode: CrawlMode;
+  maxPages: number;
+  matchMode: MatchMode;
+  /** Source items to match against when {@link matchMode} includes per-item. */
+  sourceItems: JobSourceItem[];
+  destinations: JobDestinations;
+  /** 0–100 completion percentage. */
+  progress: number;
+  /** Human-readable status line for the UI. */
+  message: string;
+  /** Catalog produced by the job once finished. */
+  resultCatalogId?: string;
+  error?: string;
+}
+
 /** Branding + context passed to the PDF generator. */
 export interface CatalogMeta {
   catalogId: string; marketplace: Marketplace; searchKeywords: string; timestamp: number;
@@ -114,7 +155,7 @@ export interface Settings {
 export type MessageType =
   | 'EXTRACT_PRODUCTS' | 'GET_PAGE_INFO' | 'GET_NEXT_PAGE'
   | 'EXTRACT_DETAIL'
-  | 'FETCH_IMAGES_BATCH' | 'OPEN_ITEM';
+  | 'FETCH_IMAGES_BATCH' | 'OPEN_ITEM' | 'RUN_JOBS';
 export interface MessageRequest<T = unknown> { type: MessageType; payload?: T; }
 export interface MessageResponse<T = unknown> { success: boolean; data?: T; error?: string; }
 

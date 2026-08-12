@@ -1,14 +1,14 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { PageInfo, Product, Settings, CatalogRecord, ItemMapping, CatalogMeta, CrawlMode } from '../../types';
+import { PageInfo, Product, Settings, CatalogMeta, CrawlMode } from '../../types';
 import { storageManager } from '../../storage/StorageManager';
 import { pdfGenerator }   from '../../pdf/PDFGenerator';
 import { crawl }          from '../crawler';
 import { captureDetail }  from '../detailCapture';
-import { makeThumbnail, redactPeople, toFaxGray }  from '../imageUtil';
-import { fetchImagesBatched } from '../fetchImages';
+import { toFaxGray }      from '../imageUtil';
+import { buildCatalog }   from '../catalogBuilder';
 import { ProductList }    from './ProductList';
 import { SendButtons }    from './SendButtons';
-import { logUsage, reserveItems } from '../../cloud/faxService';
+import { BackgroundJobForm } from './BackgroundJobForm';
 
 async function getTabId(): Promise<number> {
   // The toolbar popup shares the browser window, so its active tab is the page.
@@ -101,48 +101,23 @@ export const Dashboard: React.FC = () => {
     if (!chosen.length) { setError('Select at least one product.'); return; }
     setPhase('images'); setProgress(5); setError(''); setPdfBlob(null); setStatus('Reserving item numbers…');
     try {
-      const start = await reserveItems(chosen.length);
-      const selected = chosen.map((p, i) => ({ ...p, itemNumber: start + i }));
-      setStatus('Fetching images…');
-      const images = await fetchImagesBatched(selected.map((p) => p.imageUrl));
-      const enriched = selected.map((p, i) => ({ ...p, imageBase64: images[i] ?? undefined }));
-      if (settings.hidePeople) {
-        setStatus('Reviewing images…');
-        // Redact several images at once (was one-by-one) to cut total time.
-        const CONCURRENCY = 3;
-        for (let i = 0; i < enriched.length; i += CONCURRENCY) {
-          await Promise.all(
-            enriched.slice(i, i + CONCURRENCY).map(async (p) => {
-              if (p.imageBase64) p.imageBase64 = await redactPeople(p.imageBase64);
-            }),
-          );
-        }
-      }
-      setProgress(50); setPhase('pdf'); setStatus('Generating PDF…');
-      const id = await storageManager.nextCatalogId();
-      const meta: CatalogMeta = {
-        catalogId: id, marketplace: pageInfo.marketplace, searchKeywords: pageInfo.searchKeywords,
-        timestamp: Date.now(), companyName: settings.companyName,
-        companyLogo: settings.companyLogo, showLogo: settings.showLogo,
-        customerName: customer.trim() || undefined, representative: rep.trim() || undefined,
-      };
-      const blob = await pdfGenerator.generate(enriched, settings, meta);
+      const built = await buildCatalog(
+        {
+          products: chosen, settings, marketplace: pageInfo.marketplace,
+          searchKeywords: pageInfo.searchKeywords, pageCount: pageInfo.totalPages ?? 1,
+          customerName: customer, representative: rep,
+        },
+        (pct, msg) => {
+          setProgress(pct);
+          setPhase(pct >= 55 ? 'pdf' : 'images');
+          setStatus(msg);
+        },
+      );
       // Keep the full source so the fax button can rebuild a grayscale variant
       // (download/email stay colour) without re-fetching images.
-      faxSourceRef.current = { products: enriched, settings, meta };
-      const thumb = await makeThumbnail(enriched.find((p) => p.imageBase64)?.imageBase64 ?? '');
-      const maps: ItemMapping[] = enriched.map((p) => ({ itemNumber: p.itemNumber, url: p.url, page: p.page, marketplace: p.marketplace, timestamp: p.timestamp, title: p.title, imageUrl: p.imageUrl }));
-      const rec: CatalogRecord = {
-        id, marketplace: pageInfo.marketplace, searchKeywords: pageInfo.searchKeywords,
-        generationDate: Date.now(), productCount: enriched.length, pageCount: pageInfo.totalPages ?? 1,
-        customerName: meta.customerName, representative: meta.representative,
-        thumbnail: thumb, favorite: false, hasPdf: true, itemMappings: maps,
-      };
-      await storageManager.saveCatalog(rec);
-      await storageManager.savePdf(id, blob);
-      void logUsage('catalogs');
-      setPdfBlob(blob); setCatalogId(id); setProgress(100); setPhase('done');
-      setStatus(`Catalog ${id} ready — ${enriched.length} products`);
+      faxSourceRef.current = { products: built.products, settings, meta: built.meta };
+      setPdfBlob(built.blob); setCatalogId(built.id); setProgress(100); setPhase('done');
+      setStatus(`Catalog ${built.id} ready — ${built.products.length} products`);
     } catch (e) { setError(e instanceof Error ? e.message : String(e)); setPhase('idle'); setStatus(''); }
   }, [products, included, settings, pageInfo, customer, rep]);
 
@@ -264,6 +239,17 @@ export const Dashboard: React.FC = () => {
                   <>
                     <button onClick={download} className="w-full py-2.5 bg-violet-500 hover:bg-violet-600 text-white text-xs font-semibold rounded-lg">⬇️ Download PDF</button>
                     <SendButtons getBlob={async () => pdfBlob} getFaxBlob={makeFaxBlob} filenameBase={catalogId || 'catalog'} />
+                    {pageInfo && (
+                      <BackgroundJobForm
+                        keywords={pageInfo.searchKeywords}
+                        sourceItems={products.filter((p) => included.has(p.id)).map((p) => ({ title: p.title, price: p.price }))}
+                        sourceCatalogId={catalogId || undefined}
+                        crawlMode={crawlMode}
+                        maxPages={maxPages}
+                        customerName={customer}
+                        representative={rep}
+                      />
+                    )}
                   </>
                 )}
               </div>

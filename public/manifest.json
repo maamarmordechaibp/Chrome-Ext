@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Marketplace Catalog Generator",
-  "version": "1.0.41",
+  "version": "2.0.0",
   "description": "Generate professional printable PDF catalogs.",
   "action": {
     "default_popup": "popup.html",
@@ -117,7 +117,10 @@
     "storage",
     "tabs",
     "activeTab",
-    "scripting"
+    "scripting",
+    "offscreen",
+    "alarms",
+    "notifications"
   ],
   "content_security_policy": {
     "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'"

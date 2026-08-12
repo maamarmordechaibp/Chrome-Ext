@@ -1,4 +1,4 @@
-import { CatalogRecord } from '../types';
+import { BackgroundJob, CatalogRecord } from '../types';
 
 /**
  * Thin promise-based IndexedDB wrapper for catalog data.
@@ -11,10 +11,11 @@ import { CatalogRecord } from '../types';
  * (chrome-extension://<id>), so this database is shared between them.
  */
 const DB_NAME = 'catalog-db';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 const STORE_CATALOGS = 'catalogs';
 const STORE_IMAGES = 'images';
 const STORE_PDFS = 'pdfs';
+const STORE_JOBS = 'jobs';
 
 let dbPromise: Promise<IDBDatabase> | null = null;
 
@@ -31,6 +32,11 @@ function openDB(): Promise<IDBDatabase> {
       }
       if (!db.objectStoreNames.contains(STORE_IMAGES)) db.createObjectStore(STORE_IMAGES);
       if (!db.objectStoreNames.contains(STORE_PDFS)) db.createObjectStore(STORE_PDFS);
+      if (!db.objectStoreNames.contains(STORE_JOBS)) {
+        const jobs = db.createObjectStore(STORE_JOBS, { keyPath: 'id' });
+        jobs.createIndex('status', 'status');
+        jobs.createIndex('createdAt', 'createdAt');
+      }
     };
     req.onsuccess = () => resolve(req.result);
     req.onerror = () => reject(req.error);
@@ -86,5 +92,21 @@ export const catalogDB = {
     await tx(STORE_CATALOGS, 'readwrite', (s) => s.clear());
     await tx(STORE_IMAGES, 'readwrite', (s) => s.clear());
     await tx(STORE_PDFS, 'readwrite', (s) => s.clear());
+  },
+};
+
+export const jobDB = {
+  async getJobs(): Promise<BackgroundJob[]> {
+    const all = await tx<BackgroundJob[]>(STORE_JOBS, 'readonly', (s) => s.getAll());
+    return all.sort((a, b) => b.createdAt - a.createdAt);
+  },
+  getJob(id: string): Promise<BackgroundJob | undefined> {
+    return tx<BackgroundJob | undefined>(STORE_JOBS, 'readonly', (s) => s.get(id));
+  },
+  async saveJob(job: BackgroundJob): Promise<void> {
+    await tx(STORE_JOBS, 'readwrite', (s) => s.put(job));
+  },
+  async deleteJob(id: string): Promise<void> {
+    await tx(STORE_JOBS, 'readwrite', (s) => s.delete(id));
   },
 };

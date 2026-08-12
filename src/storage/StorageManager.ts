@@ -1,5 +1,5 @@
-import { CatalogRecord, ItemMapping, Settings } from '../types';
-import { catalogDB } from './Database';
+import { BackgroundJob, CatalogRecord, ItemMapping, Settings } from '../types';
+import { catalogDB, jobDB } from './Database';
 
 /** Lazily loads the cloud layer only when needed. Keeps Firebase out of the
  *  background service worker bundle (which never calls cloud methods). */
@@ -121,6 +121,39 @@ class StorageManager {
       if (mapping) return { catalog: cat, mapping };
     }
     return null;
+  }
+
+  /** Background "find similar & send" jobs (local-only; run on this computer). */
+  listJobs(): Promise<BackgroundJob[]> { return jobDB.getJobs(); }
+  getJob(id: string): Promise<BackgroundJob | undefined> { return jobDB.getJob(id); }
+  saveJob(job: BackgroundJob): Promise<void> { return jobDB.saveJob(job); }
+  deleteJob(id: string): Promise<void> { return jobDB.deleteJob(id); }
+
+  /** Creates and persists a queued job from the given options. */
+  async createJob(
+    input: Omit<BackgroundJob, 'id' | 'status' | 'createdAt' | 'updatedAt' | 'progress' | 'message'>,
+  ): Promise<BackgroundJob> {
+    const now = Date.now();
+    const job: BackgroundJob = {
+      ...input,
+      id: `JOB-${now}-${Math.random().toString(36).slice(2, 8)}`,
+      status: 'queued',
+      createdAt: now,
+      updatedAt: now,
+      progress: 0,
+      message: 'Queued',
+    };
+    await jobDB.saveJob(job);
+    return job;
+  }
+
+  /** Applies a partial update to a persisted job and stamps updatedAt. */
+  async updateJob(id: string, patch: Partial<BackgroundJob>): Promise<BackgroundJob | undefined> {
+    const job = await jobDB.getJob(id);
+    if (!job) return undefined;
+    const next = { ...job, ...patch, id: job.id, updatedAt: Date.now() };
+    await jobDB.saveJob(next);
+    return next;
   }
 
   async clearAll(): Promise<void> {

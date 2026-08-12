@@ -3,16 +3,18 @@ import { createRoot } from 'react-dom/client';
 import { Dashboard } from './components/Dashboard';
 import { OpenItem }  from './components/OpenItem';
 import { History }   from './components/History';
+import { JobsPanel } from './components/JobsPanel';
 import { Settings }  from './components/Settings';
 import { Login }     from './components/Login';
 import { useAuth }   from '../cloud/useAuth';
 import { authService } from '../cloud/authService';
 import './index.css';
 
-type Tab = 'dashboard' | 'open-item' | 'history' | 'settings';
+type Tab = 'dashboard' | 'open-item' | 'jobs' | 'history' | 'settings';
 const TABS = [
   { id: 'dashboard' as Tab, label: 'Generate',  icon: '📄' },
   { id: 'open-item' as Tab, label: 'Open Item', icon: '🔍' },
+  { id: 'jobs'      as Tab, label: 'Jobs',      icon: '⏱️' },
   { id: 'history'   as Tab, label: 'History',   icon: '📋' },
   { id: 'settings'  as Tab, label: 'Settings',  icon: '⚙️' },
 ];
@@ -87,6 +89,7 @@ export const Popup: React.FC = () => {
       <main className="flex-1 overflow-y-auto">
         {activeTab === 'dashboard' && <Dashboard />}
         {activeTab === 'open-item' && <OpenItem />}
+        {activeTab === 'jobs'      && <JobsPanel />}
         {activeTab === 'history'   && <History />}
         {activeTab === 'settings'  && <Settings />}
       </main>

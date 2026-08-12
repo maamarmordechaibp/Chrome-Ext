@@ -6,7 +6,8 @@ export interface CrawlResult { products: Product[]; pageInfo: PageInfo; pagesSca
 const PAGE_SETTLE_MS = 1800;
 const MAX_EXTRACT_RETRIES = 3;
 
-const delay = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
+export const crawlDelay = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
+const delay = crawlDelay;
 
 function sendTabMessage<T>(tabId: number, message: unknown): Promise<MessageResponse<T>> {
   return new Promise((resolve) => {
@@ -17,7 +18,7 @@ function sendTabMessage<T>(tabId: number, message: unknown): Promise<MessageResp
   });
 }
 
-function waitForTabComplete(tabId: number): Promise<void> {
+export function waitForTabComplete(tabId: number): Promise<void> {
   return new Promise((resolve) => {
     const listener = (id: number, info: chrome.tabs.TabChangeInfo) => {
       if (id === tabId && info.status === 'complete') {

@@ -15,6 +15,9 @@ import { EtsyParser } from '../src/parsers/EtsyParser';
 import { GenericStoreParser } from '../src/parsers/GenericStoreParser';
 import { STORE_CONFIGS } from '../src/parsers/storeConfigs';
 import { parserRegistry } from '../src/parsers/ParserRegistry';
+import { buildSearchUrl, SEARCHABLE_MARKETPLACES } from '../src/parsers/searchUrl';
+import { titleSimilarity, priceCloseness, rankSimilar } from '../src/parsers/similarity';
+import { Product } from '../src/types';
 import { loadFixture } from './fixtures/loader';
 
 /**
@@ -508,6 +511,71 @@ describe('GenericStoreParser', () => {
     const detailDoc = new JSDOM('<h1>Item</h1>', { url: 'https://www.newegg.com/p/N82E16819113567' })
       .window.document as unknown as Document;
     expect(parserRegistry.getParser('https://www.newegg.com/p/x')!.isDetailPage(detailDoc)).toBe(true);
+  });
+});
+
+describe('buildSearchUrl', () => {
+  it('builds query-param search URLs for supported marketplaces', () => {
+    expect(buildSearchUrl('Amazon', 'wireless headphones'))
+      .toBe('https://www.amazon.com/s?k=wireless+headphones');
+    expect(buildSearchUrl('eBay', 'vintage lamp'))
+      .toBe('https://www.ebay.com/sch/i.html?_nkw=vintage+lamp');
+    expect(buildSearchUrl('Walmart', 'coffee maker'))
+      .toBe('https://www.walmart.com/search?q=coffee+maker');
+    expect(buildSearchUrl('Target', 'water bottle'))
+      .toBe('https://www.target.com/s?searchTerm=water+bottle');
+  });
+
+  it('builds path-based search URLs and encodes keywords', () => {
+    expect(buildSearchUrl('Home Depot', 'cordless drill'))
+      .toBe('https://www.homedepot.com/s/cordless%20drill');
+  });
+
+  it('returns null for unknown or empty keywords', () => {
+    expect(buildSearchUrl('Amazon', '   ')).toBeNull();
+    expect(buildSearchUrl('Unknown', 'shoes')).toBeNull();
+  });
+
+  it('produces a valid URL for every searchable marketplace', () => {
+    for (const mp of SEARCHABLE_MARKETPLACES) {
+      const url = buildSearchUrl(mp, 'test item');
+      expect(url).toBeTruthy();
+      expect(() => new URL(url!)).not.toThrow();
+    }
+  });
+});
+
+describe('similarity', () => {
+  const prod = (title: string, price?: string): Product => ({
+    id: title, itemNumber: 0, marketplace: 'Amazon', title, imageUrl: '',
+    price: price ?? '', page: 1, url: '', searchKeywords: '', timestamp: 0,
+  });
+
+  it('scores overlapping titles higher than unrelated ones', () => {
+    const same = titleSimilarity('Sony Wireless Noise Cancelling Headphones', 'Sony Noise Cancelling Wireless Headphones');
+    const diff = titleSimilarity('Sony Wireless Headphones', 'Stainless Steel Water Bottle');
+    expect(same).toBeGreaterThan(diff);
+    expect(same).toBeGreaterThan(0.5);
+    expect(diff).toBe(0);
+  });
+
+  it('rates equal prices as closest and missing prices as neutral', () => {
+    expect(priceCloseness('$100.00', '$100.00')).toBe(1);
+    expect(priceCloseness('$100.00', '$50.00')).toBeCloseTo(0.5, 5);
+    expect(priceCloseness('$100.00', undefined)).toBe(0.5);
+  });
+
+  it('ranks the closest candidates first and drops unrelated ones', () => {
+    const source = { title: 'Sony Wireless Headphones', price: '$249.99' };
+    const candidates = [
+      prod('Stainless Steel Water Bottle', '$19.99'),
+      prod('Sony Wireless Bluetooth Headphones', '$239.99'),
+      prod('Sony Headphones Wireless Over Ear', '$199.99'),
+    ];
+    const ranked = rankSimilar(source, candidates, 2);
+    expect(ranked.length).toBe(2);
+    expect(ranked[0].title).toContain('Sony');
+    expect(ranked.some((r) => r.title.includes('Water Bottle'))).toBe(false);
   });
 });
 
