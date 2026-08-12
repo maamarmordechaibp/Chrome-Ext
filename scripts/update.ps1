@@ -1,7 +1,8 @@
 # Marketplace Catalog Generator - updater for the "Load unpacked" install.
 #
-# Downloads the latest built extension from GitHub Releases and unzips it into a
-# stable folder, so Chrome's "Load unpacked" always points at the newest build.
+# Downloads the latest built extension from Cloudflare Pages (the same place the
+# auto-updating .crx is hosted) and unzips it into a stable folder, so Chrome's
+# "Load unpacked" always points at the newest build.
 #
 # First run:
 #   1. Run this script (double-click, or: right-click > Run with PowerShell).
@@ -13,8 +14,7 @@
 
 $ErrorActionPreference = 'Stop'
 
-$Repo      = 'maamarmordechaibp/Chrome-Ext'
-$ZipUrl    = "https://github.com/$Repo/releases/latest/download/dist.zip"
+$ZipUrl    = 'https://catalog-ext.pages.dev/dist.zip'
 $InstallDir = Join-Path $env:LOCALAPPDATA 'MarketplaceCatalog\extension'
 $TmpZip    = Join-Path $env:TEMP 'marketplace-catalog-dist.zip'
 
