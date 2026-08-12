@@ -52,6 +52,11 @@ export async function buildCatalog(
 
   if (settings.hidePeople) {
     report(30, 'Reviewing images…');
+    // Load the review model up front so every image is checked, even in the
+    // background job's cold offscreen document (otherwise early images slip
+    // through while the model is still downloading).
+    const { ensurePersonModel } = await import('./personDetector');
+    await ensurePersonModel();
     const CONCURRENCY = 3;
     for (let i = 0; i < enriched.length; i += CONCURRENCY) {
       await Promise.all(

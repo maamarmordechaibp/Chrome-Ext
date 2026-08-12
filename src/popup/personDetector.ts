@@ -27,6 +27,20 @@ export function preloadPersonModel(): void {
   void getModel().catch(() => { modelPromise = null; });
 }
 
+/** Loads the segmentation model and waits until it's ready (up to timeoutMs) so
+ *  every image is actually reviewed instead of slipping through while the model
+ *  is still downloading — important for the background job's cold offscreen
+ *  document. Returns false if the model couldn't load in time. */
+export async function ensurePersonModel(timeoutMs = 90000): Promise<boolean> {
+  const load = getModel();
+  load.catch(() => { modelPromise = null; }); // reset on genuine failure so a retry can reload
+  const model = await Promise.race([
+    load.catch(() => null),
+    new Promise<null>((resolve) => setTimeout(() => resolve(null), timeoutMs)),
+  ]);
+  return !!model;
+}
+
 /**
  * Returns a per-pixel person mask (1 = person, 0 = background) for the given canvas,
  * so only the actual body pixels can be painted over — not a full rectangle.
