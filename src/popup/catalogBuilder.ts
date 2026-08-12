@@ -1,7 +1,7 @@
 import { CatalogMeta, CatalogRecord, ItemMapping, Marketplace, Product, Settings } from '../types';
 import { storageManager } from '../storage/StorageManager';
 import { pdfGenerator } from '../pdf/PDFGenerator';
-import { makeThumbnail, redactPeople } from './imageUtil';
+import { makeThumbnail, redactPeople, toJpegDataUrl } from './imageUtil';
 import { fetchImagesBatched } from './fetchImages';
 import { logUsage, reserveItems } from '../cloud/faxService';
 
@@ -42,6 +42,13 @@ export async function buildCatalog(
   report(15, 'Fetching images…');
   const images = await fetchImagesBatched(selected.map((p) => p.imageUrl));
   const enriched = selected.map((p, i) => ({ ...p, imageBase64: images[i] ?? undefined }));
+
+  // Marketplaces often serve WebP/AVIF, which jsPDF can't embed; transcode every
+  // image to JPEG first so it renders in the PDF regardless of source format.
+  report(25, 'Preparing images…');
+  for (const p of enriched) {
+    if (p.imageBase64) p.imageBase64 = await toJpegDataUrl(p.imageBase64);
+  }
 
   if (settings.hidePeople) {
     report(30, 'Reviewing images…');

@@ -23,6 +23,24 @@ function loadImage(src: string): Promise<HTMLImageElement> {
   });
 }
 
+/** Re-encodes an image to JPEG so jsPDF can embed it. Marketplaces frequently
+ *  serve WebP/AVIF, which jsPDF cannot embed (it would render blank). Decoding
+ *  via a canvas and re-encoding guarantees a supported format. Returns the
+ *  original data URL unchanged on any failure. */
+export async function toJpegDataUrl(dataUrl: string, quality = 0.9): Promise<string> {
+  try {
+    const img = await loadImage(dataUrl);
+    const w = img.width, h = img.height;
+    if (!w || !h) return dataUrl;
+    const canvas = document.createElement('canvas');
+    canvas.width = w; canvas.height = h;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return dataUrl;
+    ctx.drawImage(img, 0, 0);
+    return canvas.toDataURL('image/jpeg', quality);
+  } catch { return dataUrl; }
+}
+
 /** Converts an image to high-contrast grayscale for fax output. Faxes transmit
  *  1-bit monochrome, so colour photos otherwise turn to mud; boosting contrast
  *  on a luma-grayscale version keeps edges and detail legible. Returns the
