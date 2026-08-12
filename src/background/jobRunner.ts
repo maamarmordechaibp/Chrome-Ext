@@ -2,9 +2,9 @@
 // windows, matches similar items, then hands the final product list to the
 // offscreen document to render and send the catalog. Never touches Firebase or
 // the DOM itself (those live in the offscreen document).
-import { BackgroundJob, Marketplace, Product, Settings } from '../types';
+import { BackgroundJob, JobSiteResult, Marketplace, Product, Settings } from '../types';
 import { storageManager } from '../storage/StorageManager';
-import { crawlMarketplaces, MarketplaceScan } from './crawlEngine';
+import { crawlMarketplaces, MarketplaceScan, MarketplaceScanResult } from './crawlEngine';
 import { rankSimilar } from '../parsers/similarity';
 
 /** Hard cap so a runaway multi-site search can't produce an enormous catalog. */
@@ -24,6 +24,16 @@ function dedup(products: Product[]): Product[] {
 
 function primaryMarketplace(scans: MarketplaceScan[]): Marketplace {
   return scans[0]?.marketplace ?? 'Unknown';
+}
+
+/** Builds a per-website worked/didn't-work report for every targeted site. */
+function buildSiteResults(job: BackgroundJob, result: MarketplaceScanResult): JobSiteResult[] {
+  return job.targetMarketplaces.map((marketplace) => {
+    const scan = result.scans.find((s) => s.marketplace === marketplace);
+    if (scan) return { marketplace, found: scan.products.length, ok: true };
+    const skip = result.skipped.find((s) => s.marketplace === marketplace);
+    return { marketplace, found: 0, ok: false, reason: skip?.reason ?? 'no result' };
+  });
 }
 
 async function hasOffscreen(): Promise<boolean> {
@@ -80,9 +90,14 @@ export async function runJob(jobId: string): Promise<void> {
   await storageManager.updateJob(jobId, { status: 'running', progress: 5, message: 'Searching marketplaces…' });
   try {
     const options = { mode: job.mode, maxPages: job.maxPages };
-    const { scans, skipped } = await crawlMarketplaces(job.targetMarketplaces, job.keywords, options, (p) => {
+    const result = await crawlMarketplaces(job.targetMarketplaces, job.keywords, options, (p) => {
       void storageManager.updateJob(jobId, { message: p.message });
     });
+    const { scans, skipped } = result;
+
+    // Persist the per-site report now so it's visible whether the job succeeds or fails.
+    const siteResults = buildSiteResults(job, result);
+    await storageManager.updateJob(jobId, { siteResults });
 
     const candidates = dedup(scans.flatMap((s) => s.products));
     if (candidates.length === 0) {

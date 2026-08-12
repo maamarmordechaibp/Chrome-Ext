@@ -7,6 +7,10 @@ import { auth } from '../cloud/firebase';
 import { buildCatalog, BuildCatalogInput } from '../popup/catalogBuilder';
 import { sendEmail, sendFax, logUsage } from '../cloud/faxService';
 import { JobDestinations } from '../types';
+import { installOffscreenStorageProxy } from './offscreenStorage';
+
+// chrome.storage isn't exposed to offscreen documents; route it to the worker.
+installOffscreenStorageProxy();
 
 interface RunJobPayload extends BuildCatalogInput {
   destinations: JobDestinations;

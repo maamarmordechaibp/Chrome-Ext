@@ -59,6 +59,21 @@ export const JobsPanel: React.FC = () => {
           )}
           <p className="text-[9px] text-gray-600">{job.message}</p>
           {job.error && <p className="text-[9px] text-red-600">⚠ {job.error}</p>}
+          {job.siteResults && job.siteResults.length > 0 && (
+            <div className="mt-1 border-t border-gray-100 pt-1 space-y-0.5">
+              <p className="text-[8px] font-semibold uppercase tracking-wide text-gray-400">Per-site results</p>
+              {job.siteResults.map((r) => (
+                <div key={r.marketplace} className="flex items-center justify-between text-[9px]">
+                  <span className={r.ok ? 'text-green-700' : 'text-gray-500'}>
+                    {r.ok ? '✓' : '✗'} {r.marketplace}
+                  </span>
+                  <span className={r.ok ? 'text-green-700' : 'text-red-500'}>
+                    {r.ok ? `${r.found} item${r.found === 1 ? '' : 's'}` : (r.reason ?? 'no products')}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
           {(job.status === 'done' || job.status === 'error') && (
             <button onClick={() => remove(job.id)} className="text-[9px] text-gray-400 hover:text-red-500">
               Dismiss

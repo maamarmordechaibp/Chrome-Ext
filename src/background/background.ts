@@ -30,6 +30,18 @@ async function handleMessage(message: MessageRequest): Promise<MessageResponse> 
       await chrome.tabs.create({ url: mapping.url, active: true });
       return { success: true, data: mapping };
     }
+    case 'STORAGE_LOCAL': {
+      // Proxy for the offscreen document, which has no chrome.storage of its own.
+      const { op, keys, items } = message.payload as {
+        op: 'get' | 'set' | 'remove';
+        keys?: string | string[] | null;
+        items?: Record<string, unknown>;
+      };
+      if (op === 'get') return { success: true, data: await chrome.storage.local.get(keys ?? null) };
+      if (op === 'set') { await chrome.storage.local.set(items ?? {}); return { success: true }; }
+      if (op === 'remove') { await chrome.storage.local.remove(keys ?? []); return { success: true }; }
+      return { success: false, error: `Unknown storage op: ${String(op)}` };
+    }
     default: return { success: false, error: `Unknown message type: ${message.type}` };
   }
 }

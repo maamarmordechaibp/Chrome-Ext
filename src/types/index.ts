@@ -102,6 +102,18 @@ export interface JobDestinations { email?: string; fax?: string; }
 /** A minimal source item used for per-item similarity matching. */
 export interface JobSourceItem { title: string; price?: string; }
 
+/** Per-website outcome of a job's search, kept so reps can see which sites
+ *  worked and which didn't after the job finishes. */
+export interface JobSiteResult {
+  marketplace: Marketplace;
+  /** Number of products found on this site. */
+  found: number;
+  /** True when the site returned at least one product. */
+  ok: boolean;
+  /** Why the site produced nothing, when {@link ok} is false. */
+  reason?: string;
+}
+
 /** A background job that searches similar items across marketplaces and, when
  *  done, auto-sends the generated catalog. Persisted in IndexedDB so it survives
  *  service-worker restarts and runs with the popup closed. */
@@ -126,6 +138,9 @@ export interface BackgroundJob {
   progress: number;
   /** Human-readable status line for the UI. */
   message: string;
+  /** Per-website search outcome, filled in after crawling so reps can see
+   *  which sites worked and which didn't. */
+  siteResults?: JobSiteResult[];
   /** Catalog produced by the job once finished. */
   resultCatalogId?: string;
   error?: string;
@@ -155,7 +170,7 @@ export interface Settings {
 export type MessageType =
   | 'EXTRACT_PRODUCTS' | 'GET_PAGE_INFO' | 'GET_NEXT_PAGE'
   | 'EXTRACT_DETAIL'
-  | 'FETCH_IMAGES_BATCH' | 'OPEN_ITEM' | 'RUN_JOBS';
+  | 'FETCH_IMAGES_BATCH' | 'OPEN_ITEM' | 'RUN_JOBS' | 'STORAGE_LOCAL';
 export interface MessageRequest<T = unknown> { type: MessageType; payload?: T; }
 export interface MessageResponse<T = unknown> { success: boolean; data?: T; error?: string; }
 
