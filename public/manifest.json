@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Marketplace Catalog Generator",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "Generate professional printable PDF catalogs.",
   "action": {
     "default_popup": "popup.html",
